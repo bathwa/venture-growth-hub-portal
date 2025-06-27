@@ -12,9 +12,9 @@ import { Observer, getObserversByUser, getObserverByEmail, getObserverAccessLog,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
-const ObserverOverview = () => {
+export default function ObserverDashboard() {
   const [observerData, setObserverData] = useState<Observer | null>(null);
-  const [accessLogs, setAccessLogs] = useState<ObserverAccessLog[]>([]);
+  const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -199,11 +199,11 @@ const ObserverOverview = () => {
             <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Observer Access</h2>
             <p className="text-muted-foreground mb-4">
-              You don't have any active observer access to investment information.
+              You don't have observer access to any investment opportunities.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Contact the person who invited you to check your invitation status.
-            </p>
+            <Button onClick={() => window.history.back()}>
+              Go Back
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -212,170 +212,328 @@ const ObserverOverview = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Observer Dashboard</h1>
           <p className="text-muted-foreground">
-            View access to {observerData.entity_id}
+            Welcome back, {observerData.name}. You have read-only access to {observerData.entity_type} activities.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-green-50 text-green-700">
+            Active Observer
+          </Badge>
           <Button
-            onClick={refreshData}
             variant="outline"
             size="sm"
+            onClick={refreshData}
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-            Observer
-          </Badge>
         </div>
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Access Info */}
+      {/* Observer Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Access Information</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Observer Information
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-semibold mb-2">Personal Information</h3>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm text-muted-foreground">Name:</span>
-                  <p className="font-medium">{observerData.name}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Email:</span>
-                  <p className="font-medium">{observerData.email}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Relationship:</span>
-                  <p className="font-medium">{observerData.relationship}</p>
-                </div>
-              </div>
+              <p className="text-sm text-gray-500">Name</p>
+              <p className="font-medium">{observerData.name}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Access Details</h3>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm text-muted-foreground">Entity:</span>
-                  <p className="font-medium">{observerData.entity_id}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Entity Type:</span>
-                  <p className="font-medium">{observerData.entity_type}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Access Granted:</span>
-                  <p className="font-medium">{new Date(observerData.created_at).toLocaleDateString()}</p>
-                </div>
-                {observerData.last_accessed && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Last Access:</span>
-                    <p className="font-medium">{new Date(observerData.last_accessed).toLocaleDateString()}</p>
-                  </div>
-                )}
-              </div>
+              <p className="text-sm text-gray-500">Email</p>
+              <p className="font-medium">{observerData.email}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Relationship</p>
+              <p className="font-medium capitalize">{observerData.relationship}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Access Granted By</p>
+              <p className="font-medium">{observerData.granted_by_role}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Status</p>
+              <Badge variant={observerData.status === 'active' ? 'default' : 'secondary'}>
+                {observerData.status}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Access Since</p>
+              <p className="font-medium">
+                {new Date(observerData.created_at).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Permissions */}
+      {/* Permissions Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Permissions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Your Permissions
+          </CardTitle>
+          <CardDescription>
+            You have read-only access to the following resources
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {observerData.permissions.map((permission, index) => (
               <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                <Eye className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">{permission.description}</span>
-                <Badge variant="outline" className="ml-auto">Read Only</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>View Documents</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
-              <TrendingUp className="h-6 w-6" />
-              <span>View Progress</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
-              <Calendar className="h-6 w-6" />
-              <span>View Timeline</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-500" />
                 <div>
-                  <h4 className="font-medium">{activity.action}</h4>
-                  <p className="text-sm text-muted-foreground">{activity.entity}</p>
+                  <p className="font-medium">{permission.type.replace(/_/g, ' ')}</p>
+                  <p className="text-sm text-gray-500">{permission.description}</p>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(activity.date).toLocaleDateString()}
-                </span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-};
 
-const ObserverDashboard = () => {
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-6 bg-gray-50">
-            <Routes>
-              <Route index element={<ObserverOverview />} />
-              <Route path="documents" element={<div>Observer Documents</div>} />
-              <Route path="progress" element={<div>Progress Reports</div>} />
-              <Route path="timeline" element={<div>Project Timeline</div>} />
-            </Routes>
-          </main>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{accessLogs.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  +{accessLogs.filter(log => 
+                    new Date(log.accessed_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                  ).length} this week
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Permissions</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{observerData.permissions.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Read-only access granted
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Last Access</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {observerData.last_accessed ? 
+                    getTimeAgo(new Date(observerData.last_accessed)) : 
+                    'Never'
+                  }
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {observerData.last_accessed ? 
+                    new Date(observerData.last_accessed).toLocaleDateString() : 
+                    'No activity yet'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>
+                Access the resources you have permission to view
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getPermissionStatus('view_opportunity') && (
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-start gap-2"
+                    onClick={() => handleAccessResource('opportunity_details', 'view_opportunity')}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-medium">View Opportunity</p>
+                      <p className="text-sm text-gray-500">Access opportunity details</p>
+                    </div>
+                  </Button>
+                )}
+
+                {getPermissionStatus('view_milestones') && (
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-start gap-2"
+                    onClick={() => handleAccessResource('milestones', 'view_milestones')}
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-medium">View Milestones</p>
+                      <p className="text-sm text-gray-500">Check progress updates</p>
+                    </div>
+                  </Button>
+                )}
+
+                {getPermissionStatus('view_documents') && (
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-start gap-2"
+                    onClick={() => handleAccessResource('documents', 'view_documents')}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-medium">View Documents</p>
+                      <p className="text-sm text-gray-500">Access legal documents</p>
+                    </div>
+                  </Button>
+                )}
+
+                {getPermissionStatus('view_financials') && (
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-start gap-2"
+                    onClick={() => handleAccessResource('financials', 'view_financials')}
+                  >
+                    <TrendingUp className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-medium">View Financials</p>
+                      <p className="text-sm text-gray-500">Check financial reports</p>
+                    </div>
+                  </Button>
+                )}
+
+                {getPermissionStatus('view_reports') && (
+                  <Button 
+                    variant="outline" 
+                    className="h-auto p-4 flex flex-col items-start gap-2"
+                    onClick={() => handleAccessResource('reports', 'view_reports')}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-medium">View Reports</p>
+                      <p className="text-sm text-gray-500">Access progress reports</p>
+                    </div>
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Your recent access to resources
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {getRecentActivity().length > 0 ? (
+                <div className="space-y-4">
+                  {getRecentActivity().map((log, index) => (
+                    <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Eye className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{log.action.replace(/_/g, ' ')}</p>
+                        <p className="text-sm text-gray-500">{log.resource}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{log.timeAgo}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(log.accessed_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No activity recorded yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="resources" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Resources</CardTitle>
+              <CardDescription>
+                Resources you have permission to access
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {observerData.permissions.map((permission, index) => (
+                  <Card key={index} className="border-dashed">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        {permission.type.replace(/_/g, ' ')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 mb-4">{permission.description}</p>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleAccessResource(permission.type, permission.type)}
+                      >
+                        Access Resource
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Footer */}
+      <div className="mt-8 pt-6 border-t">
+        <div className="text-center text-sm text-gray-500">
+          <p>Observer access granted by {observerData.granted_by_role}</p>
+          <p>Access expires: {observerData.access_expiry ? 
+            new Date(observerData.access_expiry).toLocaleDateString() : 
+            'No expiration'
+          }</p>
         </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
-};
-
-export default ObserverDashboard; 
+} 

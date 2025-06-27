@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import EntrepreneurDashboard from "./pages/entrepreneur/EntrepreneurDashboard";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
+import ObserverDashboard from "./pages/observer/ObserverDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +65,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRoles={['service_provider']}>
               <ServiceProviderDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/observer/*" 
+          element={
+            <ProtectedRoute allowedRoles={['observer']}>
+              <ObserverDashboard />
             </ProtectedRoute>
           } 
         />

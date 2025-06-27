@@ -6,6 +6,7 @@ export type OpportunityStatus = 'draft' | 'pending_review' | 'published' | 'fund
 export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'overdue' | 'cancelled';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 export type ValidationSeverity = 'info' | 'warning' | 'error' | 'critical';
+export type PaymentStatus = 'pending' | 'awaiting_admin' | 'scheduled' | 'completed' | 'failed';
 
 export interface Milestone {
   id?: string;
@@ -54,6 +55,54 @@ export interface Opportunity {
   risk_level?: RiskLevel;
   validation_results?: ValidationResult;
 }
+
+export interface Payment {
+  id?: string;
+  amount: number;
+  currency: string;
+  reference_number?: string;
+  proof_file?: string;
+  status: PaymentStatus;
+  from_user_id?: string;
+  to_user_id?: string;
+}
+
+// --- Legacy Functions for Backward Compatibility ---
+
+export const validatePayment = (payment: Payment): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!payment.amount || payment.amount <= 0) errors.push('Amount must be positive');
+  if (!payment.currency) errors.push('Currency is required');
+  if (!payment.reference_number) errors.push('Reference number is required');
+  
+  if ((payment.status === 'pending' || payment.status === 'awaiting_admin') && !payment.proof_file) {
+    errors.push('Proof of payment is required');
+  }
+  
+  return { valid: errors.length === 0, errors };
+};
+
+export const validateCurrency = (currencyCode: string): boolean => {
+  const supportedCurrencies = ['USD', 'EUR', 'GBP', 'ZWL', 'ZAR', 'KES', 'NGN', 'GHS'];
+  return supportedCurrencies.includes(currencyCode.toUpperCase());
+};
+
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+  const currencySymbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    ZWL: 'ZWL',
+    ZAR: 'R',
+    KES: 'KSh',
+    NGN: '₦',
+    GHS: '₵'
+  };
+  
+  const symbol = currencySymbols[currency.toUpperCase()] || currency;
+  return `${symbol}${amount.toLocaleString()}`;
+};
 
 export class DRBE {
   private static instance: DRBE;
