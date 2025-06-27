@@ -175,7 +175,10 @@ export const DRBE = {
 
   // Milestone risk assessment
   assessMilestoneRisk(milestones: Milestone[]): { riskLevel: 'low' | 'medium' | 'high'; overdueCount: number; skippedCount: number } {
-    const overdue = milestones.filter(m => this.evaluateMilestoneStatus(m) === 'overdue');
+    const overdue = milestones.filter(m => {
+      const status = this.evaluateMilestoneStatus(m);
+      return status === 'overdue';
+    });
     const skipped = milestones.filter(m => m.status === 'skipped');
     
     const overdueCount = overdue.length;
