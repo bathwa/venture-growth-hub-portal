@@ -1,17 +1,20 @@
 import { Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, FileText, TrendingUp, Calendar, AlertCircle, RefreshCw } from "lucide-react";
+import { Eye, FileText, TrendingUp, Calendar, AlertCircle, RefreshCw, CheckCircle, Clock, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Observer, getObserversByUser } from "@/lib/observers";
+import { Observer, getObserversByUser, getObserverByEmail, getObserverAccessLog, logObserverAccess } from "@/lib/observers";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 
 const ObserverOverview = () => {
   const [observerData, setObserverData] = useState<Observer | null>(null);
+  const [accessLogs, setAccessLogs] = useState<ObserverAccessLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -70,6 +73,8 @@ const ObserverOverview = () => {
         }
       } else {
         setObserverData(observers);
+        const logs = await getObserverAccessLog(observers.id);
+        setAccessLogs(logs);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load observer data');
@@ -82,6 +87,41 @@ const ObserverOverview = () => {
     setIsRefreshing(true);
     await fetchObserverData();
     setIsRefreshing(false);
+  };
+
+  const handleAccessResource = async (resource: string, action: string) => {
+    if (!observerData) return;
+    
+    try {
+      await logObserverAccess(observerData.id, action, resource);
+      // Refresh access logs
+      const logs = await getObserverAccessLog(observerData.id);
+      setAccessLogs(logs);
+    } catch (err) {
+      console.error('Error logging access:', err);
+    }
+  };
+
+  const getPermissionStatus = (permissionType: string) => {
+    if (!observerData) return false;
+    return observerData.permissions.some(perm => perm.type === permissionType);
+  };
+
+  const getRecentActivity = () => {
+    return accessLogs.slice(0, 10).map(log => ({
+      ...log,
+      timeAgo: getTimeAgo(new Date(log.accessed_at))
+    }));
+  };
+
+  const getTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
   // Loading skeleton
