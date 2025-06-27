@@ -126,9 +126,15 @@ export const DRBE = {
     const now = new Date();
     const target = new Date(milestone.target_date);
     
-    if (milestone.status === 'completed') return 'completed';
-    if (milestone.status === 'skipped') return 'skipped';
-    if (now > target && milestone.status !== 'completed' && milestone.status !== 'skipped') return 'overdue';
+    // If already completed or skipped, return as-is
+    if (milestone.status === 'completed' || milestone.status === 'skipped') {
+      return milestone.status;
+    }
+    
+    // Check if overdue
+    if (now > target && milestone.status !== 'completed' && milestone.status !== 'skipped') {
+      return 'overdue';
+    }
     
     return milestone.status;
   },
