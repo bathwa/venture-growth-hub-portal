@@ -1,4 +1,3 @@
-
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -16,6 +15,7 @@ const menuItems = [
   { title: "Overview", url: "/entrepreneur", icon: "📊" },
   { title: "My Opportunities", url: "/entrepreneur/opportunities", icon: "🎯" },
   { title: "Create Opportunity", url: "/entrepreneur/create-opportunity", icon: "➕" },
+  { title: "Documents", url: "/entrepreneur/documents", icon: "📋" },
   { title: "Investment Offers", url: "/entrepreneur/offers", icon: "💼" },
   { title: "Agreements", url: "/entrepreneur/agreements", icon: "📄" },
   { title: "Progress Reports", url: "/entrepreneur/reports", icon: "📈" },

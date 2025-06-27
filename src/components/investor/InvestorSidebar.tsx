@@ -12,19 +12,15 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Overview", url: "/admin", icon: "📊" },
-  { title: "User Management", url: "/admin/users", icon: "👥" },
-  { title: "Payment Management", url: "/admin/payments", icon: "💰" },
-  { title: "Investment Pools", url: "/admin/pools", icon: "🏦" },
-  { title: "Escrow Accounts", url: "/admin/escrow", icon: "🔒" },
-  { title: "Opportunities", url: "/admin/opportunities", icon: "🎯" },
-  { title: "Reports & Analytics", url: "/admin/reports", icon: "📈" },
-  { title: "Templates", url: "/admin/templates", icon: "📄" },
-  { title: "Documents", url: "/admin/documents", icon: "📋" },
-  { title: "Platform Settings", url: "/admin/settings", icon: "⚙️" },
+  { title: "Overview", url: "/investor", icon: "📊" },
+  { title: "Documents", url: "/investor/documents", icon: "📋" },
+  { title: "Portfolio", url: "/investor/portfolio", icon: "💼" },
+  { title: "Due Diligence", url: "/investor/due-diligence", icon: "🔍" },
+  { title: "Reports", url: "/investor/reports", icon: "📈" },
+  { title: "Profile", url: "/investor/profile", icon: "👤" },
 ];
 
-export function AdminSidebar() {
+export function InvestorSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
@@ -32,7 +28,7 @@ export function AdminSidebar() {
   const isCollapsed = state === "collapsed";
 
   const isActive = (path: string) => {
-    if (path === "/admin") {
+    if (path === "/investor") {
       return currentPath === path;
     }
     return currentPath.startsWith(path);
@@ -40,7 +36,7 @@ export function AdminSidebar() {
 
   const getNavClass = (path: string) => {
     return isActive(path) 
-      ? "bg-blue-100 text-blue-700 font-medium" 
+      ? "bg-green-100 text-green-700 font-medium" 
       : "hover:bg-gray-100";
   };
 
@@ -49,7 +45,7 @@ export function AdminSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={isCollapsed ? "hidden" : ""}>
-            Admin Panel
+            Investor Portal
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -59,7 +55,7 @@ export function AdminSidebar() {
                     <NavLink
                       to={item.url}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${getNavClass(item.url)}`}
-                      end={item.url === "/admin"}
+                      end={item.url === "/investor"}
                     >
                       <span className="text-lg">{item.icon}</span>
                       {!isCollapsed && <span>{item.title}</span>}
@@ -73,4 +69,4 @@ export function AdminSidebar() {
       </SidebarContent>
     </Sidebar>
   );
-}
+} 

@@ -11,6 +11,7 @@ import { EscrowManagement } from "@/components/admin/EscrowManagement";
 import { OpportunityOversight } from "@/components/admin/OpportunityOversight";
 import { ReportsAnalytics } from "@/components/admin/ReportsAnalytics";
 import TemplateManagement from "@/components/admin/TemplateManagement";
+import AdminDocumentWorkspace from "@/components/admin/AdminDocumentWorkspace";
 
 const AdminDashboard = () => {
   return (
@@ -30,6 +31,7 @@ const AdminDashboard = () => {
               <Route path="opportunities" element={<OpportunityOversight />} />
               <Route path="reports" element={<ReportsAnalytics />} />
               <Route path="templates" element={<TemplateManagement />} />
+              <Route path="documents" element={<AdminDocumentWorkspace />} />
             </Routes>
           </main>
         </div>
