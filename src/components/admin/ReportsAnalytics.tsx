@@ -30,7 +30,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  Activity
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -436,67 +437,33 @@ export function ReportsAnalytics() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* User Growth Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  User Growth
-                  <Button variant="outline" size="sm" onClick={() => handleExportReport('user-growth')}>
-                    <DownloadIcon className="h-4 w-4" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">User Growth Chart</p>
-                    <p className="text-sm text-gray-400">Registration and active user trends</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Investment Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Investment Trends
-                  <Button variant="outline" size="sm" onClick={() => handleExportReport('investment-trends')}>
-                    <DownloadIcon className="h-4 w-4" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Investment Trends Chart</p>
-                    <p className="text-sm text-gray-400">Total and average investment amounts</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Platform Health */}
             <Card>
               <CardHeader>
-                <CardTitle>Platform Health</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  Platform Health
+                  <Button variant="outline" size="sm" onClick={() => handleExportReport('platform-health')}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {data.performanceMetrics.platformHealth.map((metric, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
                         {getStatusIcon(metric.status)}
-                        <span className="text-sm font-medium">{metric.metric}</span>
+                        <div>
+                          <p className="font-medium">{metric.metric}</p>
+                          <p className="text-sm text-gray-500">Current performance</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${getStatusColor(metric.status)}`}>
+                      <div className="text-right">
+                        <p className={`font-bold ${getStatusColor(metric.status)}`}>
                           {metric.metric === 'Response Time' ? `${metric.value}ms` : 
                            metric.metric === 'User Satisfaction' ? `${metric.value}/5` :
                            metric.metric === 'Error Rate' ? `${metric.value}%` : `${metric.value}%`}
-                        </span>
+                        </p>
                         <Badge variant="outline" className="text-xs">
                           {metric.status}
                         </Badge>
@@ -515,7 +482,7 @@ export function ReportsAnalytics() {
               <CardContent>
                 <div className="space-y-3">
                   <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('comprehensive')}>
-                    <DownloadIcon className="h-4 w-4 mr-2" />
+                    <Download className="h-4 w-4 mr-2" />
                     Export Comprehensive Report
                   </Button>
                   <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('executive')}>
@@ -529,26 +496,72 @@ export function ReportsAnalytics() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Performance Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Alert>
+                    <TrendingUp className="h-4 w-4" />
+                    <AlertDescription>
+                      User registration growth is strong at +12.5% month-over-month
+                    </AlertDescription>
+                  </Alert>
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Platform uptime remains excellent at 99.8%
+                    </AlertDescription>
+                  </Alert>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Opportunity to funding conversion rate could be improved
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">New user registration</p>
+                      <p className="text-xs text-gray-500">john.doe@example.com</p>
+                    </div>
+                    <span className="text-xs text-gray-500">5 min ago</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Payment approved</p>
+                      <p className="text-xs text-gray-500">$50,000 investment</p>
+                    </div>
+                    <span className="text-xs text-gray-500">15 min ago</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Opportunity published</p>
+                      <p className="text-xs text-gray-500">Tech Startup Funding</p>
+                    </div>
+                    <span className="text-xs text-gray-500">1 hour ago</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* User Registrations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Registrations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Registration Chart</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* User Types Distribution */}
             <Card>
               <CardHeader>
@@ -622,26 +635,34 @@ export function ReportsAnalytics() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export User Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('user-registrations')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    User Registration Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('kyc-status')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    KYC Status Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('user-activity')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    User Activity Report
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="opportunities" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Opportunity Creation Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Opportunity Creation Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Opportunity Trends Chart</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Opportunity Categories */}
             <Card>
               <CardHeader>
@@ -708,26 +729,34 @@ export function ReportsAnalytics() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Opportunity Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('opportunity-categories')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Category Analysis Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('funding-ranges')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Funding Range Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('conversion-rates')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Conversion Analysis Report
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="investments" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Investment Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Investment Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Investment Trends Chart</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Investment Types */}
             <Card>
               <CardHeader>
@@ -786,26 +815,34 @@ export function ReportsAnalytics() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Investment Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('investment-types')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Investment Types Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('top-investors')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Top Investors Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('time-to-fund')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Time to Fund Analysis
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Revenue Trends */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Revenue Chart</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Payment Status */}
             <Card>
               <CardHeader>
@@ -821,21 +858,6 @@ export function ReportsAnalytics() {
                       </Badge>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Escrow Balance */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Escrow Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Escrow Balance Chart</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -864,6 +886,52 @@ export function ReportsAnalytics() {
                     <span className="text-sm">Total Average Fee</span>
                     <span className="text-sm">4.0%</span>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Revenue Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Total Revenue (6 months)</span>
+                    <span className="text-sm font-medium">{formatCurrency(data.overview.totalRevenue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Average Monthly Revenue</span>
+                    <span className="text-sm font-medium">{formatCurrency(data.overview.totalRevenue / 6)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Growth Rate</span>
+                    <span className="text-sm font-medium text-green-600">+22.1%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Financial Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('revenue-report')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Revenue Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('payment-status')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Payment Status Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('financial-summary')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Financial Summary
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -929,21 +997,6 @@ export function ReportsAnalytics() {
               </CardContent>
             </Card>
 
-            {/* User Retention */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Retention</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Retention Chart</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Performance Insights */}
             <Card>
               <CardHeader>
@@ -969,6 +1022,29 @@ export function ReportsAnalytics() {
                       Opportunity to funding conversion rate could be improved
                     </AlertDescription>
                   </Alert>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Export Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Export Performance Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('performance-metrics')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Performance Metrics Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('conversion-analysis')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Conversion Analysis Report
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('platform-health')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Platform Health Report
+                  </Button>
                 </div>
               </CardContent>
             </Card>

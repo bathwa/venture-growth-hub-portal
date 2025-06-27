@@ -5,11 +5,11 @@ import { usePWA } from "@/contexts/PWAContext";
 import { toast } from "sonner";
 import NotificationBell from "@/components/ui/notification-bell";
 
-interface AdminHeaderProps {
+interface InvestorHeaderProps {
   onOpenNotifications?: () => void;
 }
 
-export function AdminHeader({ onOpenNotifications }: AdminHeaderProps) {
+export function InvestorHeader({ onOpenNotifications }: InvestorHeaderProps) {
   const { user, logout } = useAuth();
   const { isOnline, canInstall, installPWA } = usePWA();
 
@@ -23,7 +23,7 @@ export function AdminHeader({ onOpenNotifications }: AdminHeaderProps) {
       <div className="flex items-center gap-4">
         <SidebarTrigger />
         <h1 className="text-xl font-semibold text-gray-900">
-          Admin Dashboard
+          Investor Dashboard
         </h1>
         {!isOnline && (
           <span className="text-sm bg-orange-100 text-orange-800 px-2 py-1 rounded">
@@ -52,4 +52,4 @@ export function AdminHeader({ onOpenNotifications }: AdminHeaderProps) {
       </div>
     </header>
   );
-}
+} 

@@ -13,8 +13,20 @@ import { ReportsAnalytics } from "@/components/admin/ReportsAnalytics";
 import TemplateManagement from "@/components/admin/TemplateManagement";
 import AdminDocumentWorkspace from "@/components/admin/AdminDocumentWorkspace";
 import ObserverManagement from "@/components/ui/observer-management";
+import NotificationCenter from "@/components/ui/notification-center";
+import { useState } from "react";
 
 const AdminDashboard = () => {
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+
+  const handleOpenNotifications = () => {
+    setIsNotificationCenterOpen(true);
+  };
+
+  const handleCloseNotifications = () => {
+    setIsNotificationCenterOpen(false);
+  };
+
   // Mock user data - in real app this would come from auth context
   const mockUserId = "admin-001";
   const mockEntityId = "platform";
@@ -25,7 +37,7 @@ const AdminDashboard = () => {
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
-          <AdminHeader />
+          <AdminHeader onOpenNotifications={handleOpenNotifications} />
           <main className="flex-1 p-6 bg-gray-50">
             <Routes>
               <Route index element={<AdminOverview />} />
@@ -53,6 +65,12 @@ const AdminDashboard = () => {
           </main>
         </div>
       </div>
+      
+      {/* Notification Center */}
+      <NotificationCenter 
+        isOpen={isNotificationCenterOpen} 
+        onClose={handleCloseNotifications} 
+      />
     </SidebarProvider>
   );
 };

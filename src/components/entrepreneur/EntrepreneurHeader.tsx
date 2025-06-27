@@ -1,11 +1,15 @@
-
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePWA } from "@/contexts/PWAContext";
 import { toast } from "sonner";
+import NotificationBell from "@/components/ui/notification-bell";
 
-export function EntrepreneurHeader() {
+interface EntrepreneurHeaderProps {
+  onOpenNotifications?: () => void;
+}
+
+export function EntrepreneurHeader({ onOpenNotifications }: EntrepreneurHeaderProps) {
   const { user, logout } = useAuth();
   const { isOnline, canInstall, installPWA } = usePWA();
 
@@ -33,6 +37,10 @@ export function EntrepreneurHeader() {
           <Button variant="outline" size="sm" onClick={installPWA}>
             Install App
           </Button>
+        )}
+        
+        {onOpenNotifications && (
+          <NotificationBell onOpenNotifications={onOpenNotifications} />
         )}
         
         <div className="flex items-center gap-2">
