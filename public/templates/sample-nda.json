@@ -1,0 +1,12 @@
+{
+  "id": "nda-standard-sample",
+  "name": "Standard NDA (Sample)",
+  "type": "agreement",
+  "subtype": "nda",
+  "description": "Non-Disclosure Agreement for confidential information sharing",
+  "content": "NON-DISCLOSURE AGREEMENT\n\nThis Non-Disclosure Agreement (the \"Agreement\") is entered into as of {{date}} by and between:\n\n{{disclosing_party}} (\"Disclosing Party\")\n{{receiving_party}} (\"Receiving Party\")\n\n1. CONFIDENTIAL INFORMATION\nThe Receiving Party acknowledges that it may receive confidential and proprietary information from the Disclosing Party, including but not limited to business plans, financial information, technical data, customer lists, and trade secrets (collectively, \"Confidential Information\").\n\n2. NON-DISCLOSURE\nThe Receiving Party agrees to:\n(a) Maintain the confidentiality of all Confidential Information\n(b) Not disclose Confidential Information to any third party without prior written consent\n(c) Use Confidential Information solely for the purpose of {{purpose}}\n(d) Return or destroy all Confidential Information upon request\n\n3. TERM\nThis Agreement shall remain in effect for {{duration}} from the date of execution.\n\n4. GOVERNING LAW\nThis Agreement shall be governed by the laws of {{jurisdiction}}.\n\n5. REMEDIES\nThe parties acknowledge that monetary damages may not be sufficient for breach of this Agreement and that injunctive relief may be appropriate.\n\nIN WITNESS WHEREOF, the parties have executed this Agreement as of the date first above written.\n\n{{disclosing_party}}                    {{receiving_party}}\n_________________                  _________________\nSignature                          Signature\n\nDate: {{date}}                     Date: {{date}}",
+  "variables": ["date", "disclosing_party", "receiving_party", "purpose", "duration", "jurisdiction"],
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+} 

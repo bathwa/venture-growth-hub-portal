@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -11,6 +10,7 @@ import { InvestmentPoolManagement } from "@/components/admin/InvestmentPoolManag
 import { EscrowManagement } from "@/components/admin/EscrowManagement";
 import { OpportunityOversight } from "@/components/admin/OpportunityOversight";
 import { ReportsAnalytics } from "@/components/admin/ReportsAnalytics";
+import TemplateManagement from "@/components/admin/TemplateManagement";
 
 const AdminDashboard = () => {
   return (
@@ -29,6 +29,7 @@ const AdminDashboard = () => {
               <Route path="escrow" element={<EscrowManagement />} />
               <Route path="opportunities" element={<OpportunityOversight />} />
               <Route path="reports" element={<ReportsAnalytics />} />
+              <Route path="templates" element={<TemplateManagement />} />
             </Routes>
           </main>
         </div>

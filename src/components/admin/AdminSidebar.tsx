@@ -1,4 +1,3 @@
-
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +19,7 @@ const menuItems = [
   { title: "Escrow Accounts", url: "/admin/escrow", icon: "🔒" },
   { title: "Opportunities", url: "/admin/opportunities", icon: "🎯" },
   { title: "Reports & Analytics", url: "/admin/reports", icon: "📈" },
+  { title: "Templates", url: "/admin/templates", icon: "📄" },
   { title: "Platform Settings", url: "/admin/settings", icon: "⚙️" },
 ];
 
