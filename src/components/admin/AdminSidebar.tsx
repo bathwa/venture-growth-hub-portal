@@ -21,6 +21,7 @@ const menuItems = [
   { title: "Reports & Analytics", url: "/admin/reports", icon: "📈" },
   { title: "Templates", url: "/admin/templates", icon: "📄" },
   { title: "Documents", url: "/admin/documents", icon: "📋" },
+  { title: "Observers", url: "/admin/observers", icon: "👁️" },
   { title: "Platform Settings", url: "/admin/settings", icon: "⚙️" },
 ];
 

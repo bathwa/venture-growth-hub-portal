@@ -7,6 +7,7 @@ import { getRiskScore } from "@/lib/ai";
 import { useState } from "react";
 import InvestorDocumentWorkspace from "@/components/investor/InvestorDocumentWorkspace";
 import { InvestorSidebar } from "@/components/investor/InvestorSidebar";
+import ObserverManagement from "@/components/ui/observer-management";
 
 const mockOpportunities = [
   {
@@ -130,6 +131,11 @@ const InvestorOverview = () => {
 };
 
 const InvestorDashboard = () => {
+  // Mock user data - in real app this would come from auth context
+  const mockUserId = "inv-001";
+  const mockEntityId = "inv-001";
+  const mockEntityName = "Investment Portfolio";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -139,6 +145,17 @@ const InvestorDashboard = () => {
             <Routes>
               <Route index element={<InvestorOverview />} />
               <Route path="documents" element={<InvestorDocumentWorkspace />} />
+              <Route 
+                path="observers" 
+                element={
+                  <ObserverManagement
+                    userId={mockUserId}
+                    entityId={mockEntityId}
+                    entityType="investment"
+                    entityName={mockEntityName}
+                  />
+                } 
+              />
               <Route path="portfolio" element={<div>Portfolio Management</div>} />
               <Route path="due-diligence" element={<div>Due Diligence</div>} />
               <Route path="reports" element={<div>Investment Reports</div>} />

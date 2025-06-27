@@ -9,7 +9,126 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      observers: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          relationship: string
+          granted_by: string
+          granted_by_role: string
+          entity_id: string
+          entity_type: string
+          permissions: Json
+          status: string
+          created_at: string
+          last_accessed: string | null
+          access_expiry: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          relationship: string
+          granted_by: string
+          granted_by_role: string
+          entity_id: string
+          entity_type: string
+          permissions?: Json
+          status?: string
+          created_at?: string
+          last_accessed?: string | null
+          access_expiry?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          relationship?: string
+          granted_by?: string
+          granted_by_role?: string
+          entity_id?: string
+          entity_type?: string
+          permissions?: Json
+          status?: string
+          created_at?: string
+          last_accessed?: string | null
+          access_expiry?: string | null
+        }
+      }
+      observer_invitations: {
+        Row: {
+          id: string
+          email: string
+          name: string
+          relationship: string
+          entity_id: string
+          entity_type: string
+          permissions: Json
+          status: string
+          invited_by: string
+          invited_at: string
+          expires_at: string
+          token: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          name: string
+          relationship: string
+          entity_id: string
+          entity_type: string
+          permissions?: Json
+          status?: string
+          invited_by: string
+          invited_at?: string
+          expires_at: string
+          token: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string
+          relationship?: string
+          entity_id?: string
+          entity_type?: string
+          permissions?: Json
+          status?: string
+          invited_by?: string
+          invited_at?: string
+          expires_at?: string
+          token?: string
+        }
+      }
+      observer_access_logs: {
+        Row: {
+          id: string
+          observer_id: string
+          action: string
+          resource: string
+          accessed_at: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          id?: string
+          observer_id: string
+          action: string
+          resource: string
+          accessed_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          id?: string
+          observer_id?: string
+          action?: string
+          resource?: string
+          accessed_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

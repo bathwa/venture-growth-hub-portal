@@ -12,8 +12,14 @@ import { OpportunityOversight } from "@/components/admin/OpportunityOversight";
 import { ReportsAnalytics } from "@/components/admin/ReportsAnalytics";
 import TemplateManagement from "@/components/admin/TemplateManagement";
 import AdminDocumentWorkspace from "@/components/admin/AdminDocumentWorkspace";
+import ObserverManagement from "@/components/ui/observer-management";
 
 const AdminDashboard = () => {
+  // Mock user data - in real app this would come from auth context
+  const mockUserId = "admin-001";
+  const mockEntityId = "platform";
+  const mockEntityName = "Platform Overview";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -32,6 +38,17 @@ const AdminDashboard = () => {
               <Route path="reports" element={<ReportsAnalytics />} />
               <Route path="templates" element={<TemplateManagement />} />
               <Route path="documents" element={<AdminDocumentWorkspace />} />
+              <Route 
+                path="observers" 
+                element={
+                  <ObserverManagement
+                    userId={mockUserId}
+                    entityId={mockEntityId}
+                    entityType="company"
+                    entityName={mockEntityName}
+                  />
+                } 
+              />
             </Routes>
           </main>
         </div>

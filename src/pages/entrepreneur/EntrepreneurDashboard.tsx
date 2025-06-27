@@ -6,8 +6,14 @@ import { EntrepreneurOverview } from "@/components/entrepreneur/EntrepreneurOver
 import { OpportunityManagement } from "@/components/entrepreneur/OpportunityManagement";
 import { CreateOpportunity } from "@/components/entrepreneur/CreateOpportunity";
 import EntrepreneurDocumentWorkspace from "@/components/entrepreneur/EntrepreneurDocumentWorkspace";
+import ObserverManagement from "@/components/ui/observer-management";
 
 const EntrepreneurDashboard = () => {
+  // Mock user data - in real app this would come from auth context
+  const mockUserId = "ent-001";
+  const mockEntityId = "opp-001";
+  const mockEntityName = "Tech Startup Alpha";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -20,6 +26,17 @@ const EntrepreneurDashboard = () => {
               <Route path="opportunities" element={<OpportunityManagement />} />
               <Route path="create-opportunity" element={<CreateOpportunity />} />
               <Route path="documents" element={<EntrepreneurDocumentWorkspace />} />
+              <Route 
+                path="observers" 
+                element={
+                  <ObserverManagement
+                    userId={mockUserId}
+                    entityId={mockEntityId}
+                    entityType="opportunity"
+                    entityName={mockEntityName}
+                  />
+                } 
+              />
               <Route path="profile" element={<div>Profile Management</div>} />
               <Route path="offers" element={<div>Investment Offers</div>} />
               <Route path="agreements" element={<div>Agreements</div>} />

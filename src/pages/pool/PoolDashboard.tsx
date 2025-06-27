@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, Users, DollarSign } from "lucide-react";
 import PoolDocumentWorkspace from "@/components/pool/PoolDocumentWorkspace";
 import { PoolSidebar } from "@/components/pool/PoolSidebar";
+import ObserverManagement from "@/components/ui/observer-management";
 
 const PoolOverview = () => {
   const poolStats = {
@@ -113,6 +114,11 @@ const PoolOverview = () => {
 };
 
 const PoolDashboard = () => {
+  // Mock user data - in real app this would come from auth context
+  const mockUserId = "pool-001";
+  const mockEntityId = "pool-001";
+  const mockEntityName = "Venture Growth Fund I";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -122,6 +128,17 @@ const PoolDashboard = () => {
             <Routes>
               <Route index element={<PoolOverview />} />
               <Route path="documents" element={<PoolDocumentWorkspace />} />
+              <Route 
+                path="observers" 
+                element={
+                  <ObserverManagement
+                    userId={mockUserId}
+                    entityId={mockEntityId}
+                    entityType="pool"
+                    entityName={mockEntityName}
+                  />
+                } 
+              />
               <Route path="investments" element={<div>Investment Management</div>} />
               <Route path="lps" element={<div>Limited Partner Management</div>} />
               <Route path="reports" element={<div>Pool Reports</div>} />

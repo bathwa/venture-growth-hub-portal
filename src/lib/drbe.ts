@@ -1,376 +1,473 @@
+// Enhanced Deterministic Rule Based Engine (DRBE)
+// Provides consistent, rule-based validation and decision making
 
-
-// Deterministic Rule Based Engine (DRBE)
-// Centralized business logic for validation, workflow, and AI output control
-
-export type OpportunityType = 'going_concern' | 'order_fulfillment' | 'project_partnership';
-export type OpportunityStatus = 'draft' | 'under_review' | 'published' | 'funded' | 'closed';
-export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'skipped' | 'overdue';
-export type OfferStatus = 'pending' | 'accepted' | 'declined' | 'countered' | 'withdrawn';
-export type InvestmentStatus = 'pending' | 'active' | 'completed' | 'cancelled';
-export type PaymentStatus = 'pending' | 'awaiting_admin' | 'scheduled' | 'completed' | 'failed';
-
-export interface Opportunity {
-  id?: string;
-  title: string;
-  type: OpportunityType;
-  status: OpportunityStatus;
-  description?: string;
-  location?: string;
-  equity_offered?: number;
-  expected_roi?: number;
-  primary_currency?: string;
-  is_draft?: boolean;
-  fields: Record<string, any>;
-}
+export type OpportunityType = 'going_concern' | 'order_fulfillment' | 'asset_purchase' | 'real_estate' | 'technology_licensing';
+export type OpportunityStatus = 'draft' | 'pending_review' | 'published' | 'funded' | 'completed' | 'cancelled';
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | 'overdue' | 'cancelled';
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+export type ValidationSeverity = 'info' | 'warning' | 'error' | 'critical';
 
 export interface Milestone {
   id?: string;
-  opportunity_id?: string;
   title: string;
   description?: string;
-  target_date: string; // ISO date
+  target_date: string;
   status: MilestoneStatus;
-  progress_notes?: string;
-  evidence_file?: string;
-  last_update: string; // ISO date
+  last_update: string;
+  completion_percentage?: number;
+  dependencies?: string[];
+  assigned_to?: string;
+  budget?: number;
+  actual_cost?: number;
 }
 
-export interface Payment {
-  id?: string;
-  amount: number;
-  currency: string;
-  reference_number?: string;
-  proof_file?: string;
-  status: PaymentStatus;
-  from_user_id?: string;
-  to_user_id?: string;
-}
-
-export interface UserProfile {
-  id?: string;
-  full_name: string;
-  email: string;
-  phone?: string;
-  avatar_url?: string;
-  role_id?: number;
-  is_active?: boolean;
-  kyc_docs?: string[];
-  kyc_status?: string;
-}
-
-export interface Agreement {
-  id?: string;
-  opportunity_id?: string;
-  type: string;
-  file_url?: string;
-  signed_by: string[];
-  required_signers: string[];
-  endorsed_by?: string[];
-  status: string;
-}
-
-export interface InvestmentPool {
-  id?: string;
+export interface ValidationRule {
+  id: string;
   name: string;
-  description?: string;
-  is_active?: boolean;
-  created_by?: string;
+  description: string;
+  severity: ValidationSeverity;
+  condition: (data: any) => boolean;
+  message: (data: any) => string;
+  category: 'financial' | 'legal' | 'operational' | 'technical' | 'compliance';
 }
 
-export interface ServiceProvider {
-  id?: string;
-  user_id?: string;
-  biography?: string;
-  expertise?: string;
-  credentials_file?: string;
-  profile_picture?: string;
-  contact_info?: Record<string, any>;
-  banking_details?: Record<string, any>;
-  is_active?: boolean;
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  info: string[];
+  riskScore: number;
+  recommendations: string[];
+  complianceStatus: 'compliant' | 'non_compliant' | 'requires_review';
 }
 
-export const DRBE = {
-  validateOpportunity(opportunity: Opportunity): { valid: boolean; errors: string[] } {
+export interface Opportunity {
+  id: string;
+  title: string;
+  type: OpportunityType;
+  status: OpportunityStatus;
+  fields: Record<string, any>;
+  milestones: Milestone[];
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  risk_level?: RiskLevel;
+  validation_results?: ValidationResult;
+}
+
+export class DRBE {
+  private static instance: DRBE;
+  private validationRules: ValidationRule[] = [];
+
+  private constructor() {
+    this.initializeRules();
+  }
+
+  public static getInstance(): DRBE {
+    if (!DRBE.instance) {
+      DRBE.instance = new DRBE();
+    }
+    return DRBE.instance;
+  }
+
+  private initializeRules() {
+    // Financial Rules
+    this.validationRules.push(
+      {
+        id: 'financial_01',
+        name: 'Equity Percentage Validation',
+        description: 'Ensure equity offered is within acceptable range',
+        severity: 'error',
+        category: 'financial',
+        condition: (data: Opportunity) => {
+          const equity = parseFloat(data.fields.equity_offered) || 0;
+          return equity >= 1 && equity <= 100;
+        },
+        message: (data: Opportunity) => `Equity offered (${data.fields.equity_offered}%) must be between 1% and 100%`
+      },
+      {
+        id: 'financial_02',
+        name: 'Funding Amount Validation',
+        description: 'Validate funding amount is reasonable',
+        severity: 'warning',
+        category: 'financial',
+        condition: (data: Opportunity) => {
+          const amount = parseFloat(data.fields.funding_amount) || 0;
+          return amount >= 1000 && amount <= 10000000;
+        },
+        message: (data: Opportunity) => `Funding amount ($${data.fields.funding_amount}) should be between $1,000 and $10M`
+      },
+      {
+        id: 'financial_03',
+        name: 'Revenue Projection Validation',
+        description: 'Check if revenue projections are realistic',
+        severity: 'warning',
+        category: 'financial',
+        condition: (data: Opportunity) => {
+          const currentRevenue = parseFloat(data.fields.current_revenue) || 0;
+          const projectedRevenue = parseFloat(data.fields.projected_revenue) || 0;
+          return projectedRevenue <= currentRevenue * 10; // Max 10x growth
+        },
+        message: (data: Opportunity) => `Projected revenue growth seems unrealistic (${data.fields.projected_revenue} vs ${data.fields.current_revenue})`
+      }
+    );
+
+    // Legal Rules
+    this.validationRules.push(
+      {
+        id: 'legal_01',
+        name: 'Required Documents Check',
+        description: 'Ensure all required legal documents are present',
+        severity: 'error',
+        category: 'legal',
+        condition: (data: Opportunity) => {
+          const requiredDocs = ['business_plan', 'financial_statements', 'legal_structure'];
+          return requiredDocs.every(doc => data.fields[doc] === 'true');
+        },
+        message: (data: Opportunity) => 'Missing required legal documents: Business Plan, Financial Statements, Legal Structure'
+      },
+      {
+        id: 'legal_02',
+        name: 'Intellectual Property Check',
+        description: 'Validate IP ownership and protection',
+        severity: 'warning',
+        category: 'legal',
+        condition: (data: Opportunity) => {
+          return data.fields.ip_protection === 'true' || data.fields.ip_protection === 'pending';
+        },
+        message: (data: Opportunity) => 'Intellectual property protection should be secured or in progress'
+      }
+    );
+
+    // Operational Rules
+    this.validationRules.push(
+      {
+        id: 'operational_01',
+        name: 'Team Size Validation',
+        description: 'Check if team size is appropriate for the opportunity',
+        severity: 'info',
+        category: 'operational',
+        condition: (data: Opportunity) => {
+          const teamSize = parseInt(data.fields.team_size) || 0;
+          const fundingAmount = parseFloat(data.fields.funding_amount) || 0;
+          return teamSize >= 1 && (fundingAmount < 100000 || teamSize <= 20);
+        },
+        message: (data: Opportunity) => `Team size (${data.fields.team_size}) should be appropriate for funding amount`
+      },
+      {
+        id: 'operational_02',
+        name: 'Market Validation',
+        description: 'Ensure market research is conducted',
+        severity: 'warning',
+        category: 'operational',
+        condition: (data: Opportunity) => {
+          return data.fields.market_research === 'true' || data.fields.market_size;
+        },
+        message: (data: Opportunity) => 'Market research should be conducted and documented'
+      }
+    );
+
+    // Technical Rules
+    this.validationRules.push(
+      {
+        id: 'technical_01',
+        name: 'Technology Readiness',
+        description: 'Check technology readiness level',
+        severity: 'warning',
+        category: 'technical',
+        condition: (data: Opportunity) => {
+          const trl = parseInt(data.fields.technology_readiness_level) || 0;
+          return trl >= 4; // Minimum TRL 4 for investment
+        },
+        message: (data: Opportunity) => `Technology readiness level (${data.fields.technology_readiness_level}) should be at least 4`
+      },
+      {
+        id: 'technical_02',
+        name: 'Scalability Check',
+        description: 'Validate scalability potential',
+        severity: 'info',
+        category: 'technical',
+        condition: (data: Opportunity) => {
+          return data.fields.scalable === 'true' || data.fields.scalability_plan;
+        },
+        message: (data: Opportunity) => 'Scalability plan should be documented'
+      }
+    );
+
+    // Compliance Rules
+    this.validationRules.push(
+      {
+        id: 'compliance_01',
+        name: 'Regulatory Compliance',
+        description: 'Check regulatory compliance status',
+        severity: 'error',
+        category: 'compliance',
+        condition: (data: Opportunity) => {
+          return data.fields.regulatory_compliant === 'true' || data.fields.compliance_status === 'compliant';
+        },
+        message: (data: Opportunity) => 'Regulatory compliance must be confirmed'
+      },
+      {
+        id: 'compliance_02',
+        name: 'KYC/AML Check',
+        description: 'Validate KYC/AML compliance',
+        severity: 'error',
+        category: 'compliance',
+        condition: (data: Opportunity) => {
+          return data.fields.kyc_complete === 'true' && data.fields.aml_check === 'true';
+        },
+        message: (data: Opportunity) => 'KYC and AML checks must be completed'
+      }
+    );
+  }
+
+  // Enhanced opportunity validation
+  public validateOpportunity(opportunity: Opportunity): ValidationResult {
     const errors: string[] = [];
-    
-    if (!opportunity.title?.trim()) errors.push('Title is required');
-    
-    // Type-specific validations
-    if (opportunity.type === 'going_concern') {
-      if (!opportunity.equity_offered || opportunity.equity_offered <= 0) {
-        errors.push('Equity offered is required for Going Concern and must be greater than 0');
+    const warnings: string[] = [];
+    const info: string[] = [];
+    let riskScore = 0;
+
+    // Run all validation rules
+    this.validationRules.forEach(rule => {
+      try {
+        if (!rule.condition(opportunity)) {
+          const message = rule.message(opportunity);
+          switch (rule.severity) {
+            case 'error':
+            case 'critical':
+              errors.push(message);
+              riskScore += 10;
+              break;
+            case 'warning':
+              warnings.push(message);
+              riskScore += 5;
+              break;
+            case 'info':
+              info.push(message);
+              riskScore += 1;
+              break;
+          }
+        }
+      } catch (error) {
+        console.error(`Error in validation rule ${rule.id}:`, error);
       }
-      if (opportunity.equity_offered && opportunity.equity_offered > 100) {
-        errors.push('Equity offered cannot exceed 100%');
+    });
+
+    // Additional milestone validation
+    const milestoneValidation = this.validateMilestones(opportunity.milestones);
+    errors.push(...milestoneValidation.errors);
+    warnings.push(...milestoneValidation.warnings);
+    info.push(...milestoneValidation.info);
+    riskScore += milestoneValidation.riskScore;
+
+    // Calculate compliance status
+    const complianceStatus = this.calculateComplianceStatus(errors, warnings);
+
+    // Generate recommendations
+    const recommendations = this.generateRecommendations(opportunity, errors, warnings);
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      info,
+      riskScore: Math.min(riskScore, 100), // Cap at 100
+      recommendations,
+      complianceStatus
+    };
+  }
+
+  // Enhanced milestone validation
+  public validateMilestones(milestones: Milestone[]): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const info: string[] = [];
+    let riskScore = 0;
+
+    if (milestones.length === 0) {
+      warnings.push('No milestones defined');
+      riskScore += 5;
+    }
+
+    milestones.forEach((milestone, index) => {
+      // Check for overdue milestones
+      if (new Date(milestone.target_date) < new Date() && milestone.status !== 'completed') {
+        errors.push(`Milestone "${milestone.title}" is overdue`);
+        riskScore += 15;
       }
-    }
-    
-    if (opportunity.type === 'order_fulfillment' && !opportunity.fields.order_details) {
-      errors.push('Order details required for Order Fulfillment');
-    }
-    
-    if (opportunity.type === 'project_partnership' && !opportunity.fields.partner_roles) {
-      errors.push('Partner roles required for Project Partnership');
-    }
 
-    // General validations
-    if (opportunity.expected_roi && opportunity.expected_roi < 0) {
-      errors.push('Expected ROI cannot be negative');
-    }
+      // Check for unrealistic completion percentages
+      if (milestone.completion_percentage && (milestone.completion_percentage < 0 || milestone.completion_percentage > 100)) {
+        errors.push(`Invalid completion percentage for milestone "${milestone.title}"`);
+        riskScore += 5;
+      }
 
-    return { valid: errors.length === 0, errors };
-  },
+      // Check for budget overruns
+      if (milestone.budget && milestone.actual_cost && milestone.actual_cost > milestone.budget * 1.2) {
+        warnings.push(`Milestone "${milestone.title}" has significant budget overrun`);
+        riskScore += 10;
+      }
 
-  evaluateMilestoneStatus(milestone: Milestone): MilestoneStatus {
+      // Check for dependency issues
+      if (milestone.dependencies && milestone.dependencies.length > 0) {
+        const dependencyMilestones = milestone.dependencies.map(depId => 
+          milestones.find(m => m.id === depId)
+        ).filter(Boolean);
+        
+        if (dependencyMilestones.some(dep => dep?.status !== 'completed')) {
+          warnings.push(`Milestone "${milestone.title}" has incomplete dependencies`);
+          riskScore += 5;
+        }
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      info,
+      riskScore,
+      recommendations: [],
+      complianceStatus: 'compliant'
+    };
+  }
+
+  // Enhanced milestone status evaluation
+  public evaluateMilestoneStatus(milestone: Milestone): MilestoneStatus {
+    const targetDate = new Date(milestone.target_date);
     const now = new Date();
-    const target = new Date(milestone.target_date);
-    
-    // If already completed or skipped, return as-is
-    if (milestone.status === 'completed' || milestone.status === 'skipped') {
-      return milestone.status;
+
+    if (milestone.status === 'completed') {
+      return 'completed';
     }
-    
-    // Check if overdue (for pending, in_progress statuses)
-    if (now > target) {
+
+    if (milestone.status === 'cancelled') {
+      return 'cancelled';
+    }
+
+    if (targetDate < now) {
       return 'overdue';
     }
-    
-    return milestone.status;
-  },
 
-  validateAIOutput(type: string, output: any): any {
-    // Example: Clamp risk scores, override if out of bounds
-    if (type === 'risk_score') {
-      if (output < 0) return 0;
-      if (output > 1) return 1;
-      return output;
-    }
-    
-    // Validate entrepreneur reliability scores
-    if (type === 'reliability_score') {
-      if (output < 0) return 0;
-      if (output > 5) return 5;
-      return Math.round(output * 100) / 100; // Round to 2 decimal places
-    }
-    
-    return output;
-  },
-
-  // Enhanced opportunity publishing rules
-  canPublishOpportunity(opportunity: Opportunity): { canPublish: boolean; errors: string[] } {
-    const { valid, errors } = this.validateOpportunity(opportunity);
-    if (!valid) return { canPublish: false, errors };
-
-    // Additional publishing requirements
-    const publishErrors: string[] = [];
-    
-    if (!opportunity.description?.trim()) {
-      publishErrors.push('Description is required for publication');
-    }
-    
-    if (!opportunity.primary_currency) {
-      publishErrors.push('Primary currency must be specified');
+    if (milestone.completion_percentage && milestone.completion_percentage > 0) {
+      return 'in_progress';
     }
 
-    return { 
-      canPublish: publishErrors.length === 0, 
-      errors: publishErrors 
-    };
-  },
-
-  // Milestone risk assessment
-  assessMilestoneRisk(milestones: Milestone[]): { riskLevel: 'low' | 'medium' | 'high'; overdueCount: number; skippedCount: number } {
-    const overdue = milestones.filter(m => {
-      const status = this.evaluateMilestoneStatus(m);
-      return status === 'overdue';
-    });
-    const skipped = milestones.filter(m => m.status === 'skipped');
-    
-    const overdueCount = overdue.length;
-    const skippedCount = skipped.length;
-    const totalIssues = overdueCount + skippedCount;
-    const riskRatio = totalIssues / Math.max(milestones.length, 1);
-
-    let riskLevel: 'low' | 'medium' | 'high' = 'low';
-    if (riskRatio > 0.5) riskLevel = 'high';
-    else if (riskRatio > 0.2) riskLevel = 'medium';
-
-    return { riskLevel, overdueCount, skippedCount };
+    return 'pending';
   }
-};
 
-// --- Payments & Transaction Flows ---
-export const validatePayment = (payment: Payment): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!payment.amount || payment.amount <= 0) errors.push('Amount must be positive');
-  if (!payment.currency) errors.push('Currency is required');
-  if (!payment.reference_number) errors.push('Reference number is required');
-  
-  if ((payment.status === 'pending' || payment.status === 'awaiting_admin') && !payment.proof_file) {
-    errors.push('Proof of payment is required');
-  }
-  
-  return { valid: errors.length === 0, errors };
-};
-
-// --- User Onboarding & KYC/AML ---
-export const validateUserProfile = (profile: UserProfile): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!profile.full_name?.trim()) errors.push('Full name is required');
-  if (!profile.email?.trim()) errors.push('Email is required');
-  
-  // Email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (profile.email && !emailRegex.test(profile.email)) {
-    errors.push('Valid email address is required');
-  }
-  
-  return { valid: errors.length === 0, errors };
-};
-
-export const validateKYC = (profile: UserProfile): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!profile.kyc_docs || profile.kyc_docs.length === 0) {
-    errors.push('KYC documents are required');
-  }
-  if (profile.kyc_status !== 'approved') {
-    errors.push('KYC not approved');
-  }
-  
-  return { valid: errors.length === 0, errors };
-};
-
-// --- Agreement & E-Signature Workflows ---
-export const validateAgreement = (agreement: Agreement): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  agreement.required_signers.forEach(signer => {
-    if (!agreement.signed_by.includes(signer)) {
-      errors.push(`Missing signature: ${signer}`);
+  // AI output validation
+  public validateAIOutput(type: string, output: any): any {
+    switch (type) {
+      case 'risk_score':
+        const score = parseFloat(output);
+        return isNaN(score) ? 50 : Math.max(0, Math.min(100, score));
+      
+      case 'opportunity_rating':
+        const rating = parseFloat(output);
+        return isNaN(rating) ? 3 : Math.max(1, Math.min(5, rating));
+      
+      case 'funding_recommendation':
+        return typeof output === 'string' ? output : 'requires_review';
+      
+      case 'compliance_check':
+        return typeof output === 'boolean' ? output : false;
+      
+      default:
+        return output;
     }
-  });
-  
-  if (agreement.status === 'active' && errors.length > 0) {
-    errors.push('Agreement cannot be active until all signatures are present');
   }
-  
-  return { valid: errors.length === 0, errors };
-};
 
-// --- Investment Pool Validation ---
-export const validateInvestmentPool = (pool: InvestmentPool): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!pool.name?.trim()) errors.push('Pool name is required');
-  if (pool.name && pool.name.length < 3) errors.push('Pool name must be at least 3 characters');
-  
-  return { valid: errors.length === 0, errors };
-};
+  // Calculate compliance status
+  private calculateComplianceStatus(errors: string[], warnings: string[]): 'compliant' | 'non_compliant' | 'requires_review' {
+    const criticalErrors = errors.filter(error => 
+      error.toLowerCase().includes('compliance') || 
+      error.toLowerCase().includes('regulatory') ||
+      error.toLowerCase().includes('kyc') ||
+      error.toLowerCase().includes('aml')
+    );
 
-// --- Service Provider Validation ---
-export const validateServiceProvider = (provider: ServiceProvider): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!provider.biography?.trim()) errors.push('Biography is required');
-  if (!provider.expertise?.trim()) errors.push('Expertise description is required');
-  
-  return { valid: errors.length === 0, errors };
-};
+    if (criticalErrors.length > 0) {
+      return 'non_compliant';
+    }
 
-// --- Notifications & Escalations ---
-export const shouldNotify = (eventType: string, entity: any): boolean => {
-  if (eventType === 'milestone' && entity.status === 'overdue') return true;
-  if (eventType === 'payment' && (!entity.proof_file || entity.status === 'pending')) return true;
-  if (eventType === 'offer' && entity.status === 'pending') return true;
-  if (eventType === 'agreement' && entity.status === 'unsigned') return true;
-  
-  return false;
-};
+    if (errors.length > 0 || warnings.length > 5) {
+      return 'requires_review';
+    }
 
-export const shouldEscalate = (eventType: string, entity: any): boolean => {
-  if (eventType === 'milestone' && entity.status === 'overdue') {
-    const overdueDays = (Date.now() - new Date(entity.target_date).getTime()) / (1000 * 60 * 60 * 24);
-    return overdueDays > 3;
+    return 'compliant';
   }
-  
-  if (eventType === 'payment' && entity.status === 'pending') {
-    const pendingDays = (Date.now() - new Date(entity.created_at).getTime()) / (1000 * 60 * 60 * 24);
-    return pendingDays > 7;
-  }
-  
-  return false;
-};
 
-// --- RBAC Enforcement ---
-export const canPerformAction = (role: string, action: string): boolean => {
-  const rolePermissions: Record<string, string[]> = {
-    admin: [
-      'approve_payment', 'publish_opportunity', 'view_all', 'manage_users', 
-      'manage_pools', 'manage_escrow', 'view_reports', 'manage_settings'
-    ],
-    entrepreneur: [
-      'create_opportunity', 'edit_own', 'view_own', 'hire_service_provider',
-      'make_payment', 'upload_milestone', 'sign_agreement'
-    ],
-    investor: [
-      'view_opportunity', 'make_offer', 'invest', 'hire_service_provider',
-      'sign_agreement', 'view_reports'
-    ],
-    pool_member: [
-      'view_opportunity', 'participate_in_pool', 'vote', 'view_pool_reports'
-    ],
-    service_provider: [
-      'view_tasks', 'submit_report', 'upload_credentials', 'accept_service_request',
-      'endorse_agreement'
-    ],
-  };
-  
-  return rolePermissions[role]?.includes(action) || false;
-};
+  // Generate recommendations
+  private generateRecommendations(opportunity: Opportunity, errors: string[], warnings: string[]): string[] {
+    const recommendations: string[] = [];
 
-// --- Monthly/Automated Reporting ---
-export const validateReportData = (data: any): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (!data || Object.keys(data).length === 0) {
-    errors.push('No data available for report generation');
-  }
-  
-  // Validate required report sections
-  if (data.opportunities && !Array.isArray(data.opportunities)) {
-    errors.push('Opportunities data must be an array');
-  }
-  
-  if (data.investments && !Array.isArray(data.investments)) {
-    errors.push('Investments data must be an array');
-  }
-  
-  return { valid: errors.length === 0, errors };
-};
+    // Financial recommendations
+    if (errors.some(e => e.includes('equity'))) {
+      recommendations.push('Review and adjust equity offering percentage');
+    }
 
-// --- Currency & Multi-currency Support ---
-export const validateCurrency = (currencyCode: string): boolean => {
-  const supportedCurrencies = ['USD', 'EUR', 'GBP', 'ZWL', 'ZAR', 'KES', 'NGN', 'GHS'];
-  return supportedCurrencies.includes(currencyCode.toUpperCase());
-};
+    if (warnings.some(w => w.includes('funding amount'))) {
+      recommendations.push('Consider adjusting funding amount based on market conditions');
+    }
 
-export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
-  const currencySymbols: Record<string, string> = {
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    ZWL: 'ZWL',
-    ZAR: 'R',
-    KES: 'KSh',
-    NGN: '₦',
-    GHS: '₵'
-  };
-  
-  const symbol = currencySymbols[currency.toUpperCase()] || currency;
-  return `${symbol}${amount.toLocaleString()}`;
-};
+    // Legal recommendations
+    if (errors.some(e => e.includes('documents'))) {
+      recommendations.push('Complete all required legal documentation before proceeding');
+    }
+
+    if (warnings.some(w => w.includes('intellectual property'))) {
+      recommendations.push('Secure intellectual property protection as soon as possible');
+    }
+
+    // Operational recommendations
+    if (warnings.some(w => w.includes('market research'))) {
+      recommendations.push('Conduct comprehensive market research and validation');
+    }
+
+    // Technical recommendations
+    if (warnings.some(w => w.includes('technology readiness'))) {
+      recommendations.push('Improve technology readiness level before seeking investment');
+    }
+
+    // Compliance recommendations
+    if (errors.some(e => e.includes('compliance'))) {
+      recommendations.push('Address all compliance issues before proceeding with investment');
+    }
+
+    return recommendations;
+  }
+
+  // Get validation rules by category
+  public getRulesByCategory(category: string): ValidationRule[] {
+    return this.validationRules.filter(rule => rule.category === category);
+  }
+
+  // Add custom validation rule
+  public addCustomRule(rule: ValidationRule): void {
+    this.validationRules.push(rule);
+  }
+
+  // Get risk level based on score
+  public getRiskLevel(score: number): RiskLevel {
+    if (score >= 80) return 'critical';
+    if (score >= 60) return 'high';
+    if (score >= 30) return 'medium';
+    return 'low';
+  }
+
+  // Validate observer permissions
+  public validateObserverAccess(observer: any, resource: string, action: string): boolean {
+    if (!observer || observer.status !== 'active') {
+      return false;
+    }
+
+    const requiredPermission = `${action}_${resource}`;
+    return observer.permissions.some((perm: any) => perm.type === requiredPermission);
+  }
+}
+
+// Export singleton instance
+export const drbe = DRBE.getInstance();
 

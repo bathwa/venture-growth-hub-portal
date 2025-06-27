@@ -14,6 +14,7 @@ import {
 const menuItems = [
   { title: "Overview", url: "/investor", icon: "📊" },
   { title: "Documents", url: "/investor/documents", icon: "📋" },
+  { title: "Observers", url: "/investor/observers", icon: "👁️" },
   { title: "Portfolio", url: "/investor/portfolio", icon: "💼" },
   { title: "Due Diligence", url: "/investor/due-diligence", icon: "🔍" },
   { title: "Reports", url: "/investor/reports", icon: "📈" },
