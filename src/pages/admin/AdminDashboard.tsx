@@ -6,8 +6,8 @@ import { AdminOverview } from "@/components/admin/AdminOverview";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { PaymentManagement } from "@/components/admin/PaymentManagement";
 import { PlatformSettings } from "@/components/admin/PlatformSettings";
-import { InvestmentPoolManagement } from "@/components/admin/InvestmentPoolManagement";
-import { EscrowManagement } from "@/components/admin/EscrowManagement";
+import { AdminPoolManagement } from "@/components/admin/PoolManagement";
+import { AdminEscrowManagement } from "@/components/admin/EscrowManagement";
 import { OpportunityOversight } from "@/components/admin/OpportunityOversight";
 import { ReportsAnalytics } from "@/components/admin/ReportsAnalytics";
 import TemplateManagement from "@/components/admin/TemplateManagement";
@@ -32,8 +32,8 @@ const AdminDashboard = () => {
               <Route path="users" element={<UserManagement />} />
               <Route path="payments" element={<PaymentManagement />} />
               <Route path="settings" element={<PlatformSettings />} />
-              <Route path="pools" element={<InvestmentPoolManagement />} />
-              <Route path="escrow" element={<EscrowManagement />} />
+              <Route path="pools" element={<AdminPoolManagement userId={mockUserId} />} />
+              <Route path="escrow" element={<AdminEscrowManagement userId={mockUserId} />} />
               <Route path="opportunities" element={<OpportunityOversight />} />
               <Route path="reports" element={<ReportsAnalytics />} />
               <Route path="templates" element={<TemplateManagement />} />

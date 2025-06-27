@@ -1,18 +1,21 @@
+import React from 'react';
+import { EscrowManagement } from '@/components/ui/escrow-management';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+interface AdminEscrowManagementProps {
+  userId: string;
+}
 
-export function EscrowManagement() {
+export function AdminEscrowManagement({ userId }: AdminEscrowManagementProps) {
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">Escrow Management</h2>
-      <Card>
-        <CardHeader>
-          <CardTitle>Escrow Accounts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Escrow account management will be implemented here.</p>
-        </CardContent>
-      </Card>
+      <div>
+        <h1 className="text-3xl font-bold">Admin Escrow Management</h1>
+        <p className="text-gray-600 mt-2">
+          Monitor and manage all escrow accounts across the platform
+        </p>
+      </div>
+      
+      <EscrowManagement userId={userId} userRole="admin" />
     </div>
   );
 }
