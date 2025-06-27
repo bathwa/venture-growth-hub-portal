@@ -131,8 +131,8 @@ export const DRBE = {
       return milestone.status;
     }
     
-    // Check if overdue
-    if (now > target && milestone.status !== 'completed' && milestone.status !== 'skipped') {
+    // Check if overdue (for pending, in_progress statuses)
+    if (now > target) {
       return 'overdue';
     }
     
