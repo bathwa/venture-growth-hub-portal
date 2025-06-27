@@ -19,29 +19,372 @@ export interface Agreement {
   template_id?: string;
 }
 
+export interface AgreementParty {
+  id: string;
+  name: string;
+  role: 'entrepreneur' | 'investor' | 'pool' | 'service_provider' | 'incubator' | 'accelerator' | 'advisor' | 'creditor' | 'partner' | 'employee' | 'other';
+  type: 'individual' | 'company' | 'partnership' | 'trust' | 'foundation';
+  email?: string;
+  phone?: string;
+  address?: string;
+  registration_number?: string;
+  tax_id?: string;
+  signature_authority?: string;
+  percentage_ownership?: number;
+  investment_amount?: number;
+  responsibilities?: string[];
+  rights?: string[];
+  obligations?: string[];
+}
+
 export interface AgreementTemplate {
   id: string;
   name: string;
-  agreement_type: AgreementType;
+  description: string;
+  category: 'investment' | 'nda' | 'partnership' | 'service' | 'employment' | 'pool' | 'escrow' | 'other';
+  parties: AgreementParty[];
+  variables: AgreementVariable[];
+  sections: AgreementSection[];
+  conditions: AgreementCondition[];
+  is_customizable: boolean;
+  requires_signatures: boolean;
+  auto_generate: boolean;
+}
+
+export interface AgreementVariable {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'currency' | 'percentage' | 'email' | 'phone' | 'address' | 'select' | 'multiselect' | 'boolean';
+  required: boolean;
+  default_value?: any;
+  options?: string[];
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    custom?: string;
+  };
+  placeholder?: string;
+  help_text?: string;
+}
+
+export interface AgreementSection {
+  id: string;
+  title: string;
   content: string;
-  variables: string[]; // Template variables like {{company_name}}, {{amount}}, etc.
-  is_active: boolean;
+  order: number;
+  is_required: boolean;
+  is_customizable: boolean;
+  variables: string[]; // Variable keys used in this section
+}
+
+export interface AgreementCondition {
+  id: string;
+  name: string;
+  description: string;
+  trigger: 'on_signature' | 'on_funding' | 'on_milestone' | 'on_date' | 'manual';
+  conditions: {
+    field: string;
+    operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'exists' | 'not_exists';
+    value: any;
+  }[];
+  actions: {
+    type: 'notify' | 'release_funds' | 'update_status' | 'create_task' | 'send_document' | 'trigger_workflow';
+    target: string;
+    parameters: Record<string, any>;
+  }[];
+}
+
+export interface GeneratedAgreement {
+  id: string;
+  template_id: string;
+  title: string;
+  parties: AgreementParty[];
+  variables: Record<string, any>;
+  content: string;
+  status: 'draft' | 'pending_signature' | 'signed' | 'active' | 'completed' | 'terminated';
   created_at: string;
   updated_at: string;
+  signed_at?: string;
+  expires_at?: string;
+  opportunity_id?: string;
+  pool_id?: string;
+  escrow_id?: string;
+  signatures: AgreementSignature[];
+  conditions_met: string[];
+  conditions_pending: string[];
 }
 
 export interface AgreementSignature {
-  id: string;
-  agreement_id: string;
-  user_id: string;
+  party_id: string;
+  party_name: string;
+  party_role: string;
   signed_at: string;
   ip_address?: string;
   user_agent?: string;
+  signature_method: 'electronic' | 'digital' | 'manual';
+  signature_data?: string;
 }
 
+// Default agreement templates
+export const DEFAULT_AGREEMENT_TEMPLATES: AgreementTemplate[] = [
+  {
+    id: 'investment-agreement',
+    name: 'Investment Agreement',
+    description: 'Standard investment agreement between parties',
+    category: 'investment',
+    parties: [
+      {
+        id: 'entrepreneur',
+        name: 'Entrepreneur/Company',
+        role: 'entrepreneur',
+        type: 'company',
+        responsibilities: ['Provide business plan', 'Meet milestones', 'Provide regular updates'],
+        rights: ['Receive investment', 'Use funds for business purposes'],
+        obligations: ['Diligent business operation', 'Transparency', 'Compliance']
+      },
+      {
+        id: 'investor',
+        name: 'Investor',
+        role: 'investor',
+        type: 'individual',
+        responsibilities: ['Provide investment capital', 'Support business growth'],
+        rights: ['Receive equity/returns', 'Access to information', 'Voting rights'],
+        obligations: ['Timely funding', 'Confidentiality', 'No interference']
+      }
+    ],
+    variables: [
+      {
+        key: 'company_name',
+        label: 'Company Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter company name'
+      },
+      {
+        key: 'investment_amount',
+        label: 'Investment Amount',
+        type: 'currency',
+        required: true,
+        validation: { min: 1000 }
+      },
+      {
+        key: 'equity_percentage',
+        label: 'Equity Percentage',
+        type: 'percentage',
+        required: true,
+        validation: { min: 0, max: 100 }
+      },
+      {
+        key: 'investment_date',
+        label: 'Investment Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'business_description',
+        label: 'Business Description',
+        type: 'text',
+        required: true,
+        placeholder: 'Describe the business and investment purpose'
+      }
+    ],
+    sections: [
+      {
+        id: 'preamble',
+        title: 'Preamble',
+        content: 'This Investment Agreement (the "Agreement") is entered into on {investment_date} between {company_name} (the "Company") and the Investor(s) listed below.',
+        order: 1,
+        is_required: true,
+        is_customizable: false,
+        variables: ['investment_date', 'company_name']
+      },
+      {
+        id: 'investment_terms',
+        title: 'Investment Terms',
+        content: 'The Investor agrees to invest {investment_amount} in exchange for {equity_percentage}% equity in the Company.',
+        order: 2,
+        is_required: true,
+        is_customizable: true,
+        variables: ['investment_amount', 'equity_percentage']
+      },
+      {
+        id: 'business_purpose',
+        title: 'Business Purpose',
+        content: 'The investment will be used for: {business_description}',
+        order: 3,
+        is_required: true,
+        is_customizable: true,
+        variables: ['business_description']
+      }
+    ],
+    conditions: [
+      {
+        id: 'funding_release',
+        name: 'Funding Release',
+        description: 'Release funds upon agreement signature',
+        trigger: 'on_signature',
+        conditions: [
+          { field: 'status', operator: 'equals', value: 'signed' }
+        ],
+        actions: [
+          {
+            type: 'release_funds',
+            target: 'escrow_account',
+            parameters: { amount: '{investment_amount}' }
+          }
+        ]
+      }
+    ],
+    is_customizable: true,
+    requires_signatures: true,
+    auto_generate: true
+  },
+  {
+    id: 'nda-agreement',
+    name: 'Non-Disclosure Agreement',
+    description: 'Confidentiality agreement between parties',
+    category: 'nda',
+    parties: [
+      {
+        id: 'disclosing_party',
+        name: 'Disclosing Party',
+        role: 'entrepreneur',
+        type: 'company',
+        responsibilities: ['Provide confidential information'],
+        rights: ['Protection of confidential information'],
+        obligations: ['Mark information as confidential']
+      },
+      {
+        id: 'receiving_party',
+        name: 'Receiving Party',
+        role: 'investor',
+        type: 'individual',
+        responsibilities: ['Protect confidential information'],
+        rights: ['Use information for evaluation purposes'],
+        obligations: ['Maintain confidentiality', 'Return or destroy information']
+      }
+    ],
+    variables: [
+      {
+        key: 'confidential_period',
+        label: 'Confidentiality Period (months)',
+        type: 'number',
+        required: true,
+        default_value: 24,
+        validation: { min: 1, max: 120 }
+      },
+      {
+        key: 'purpose',
+        label: 'Purpose of Disclosure',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g., Investment evaluation, partnership discussions'
+      }
+    ],
+    sections: [
+      {
+        id: 'confidentiality_obligation',
+        title: 'Confidentiality Obligation',
+        content: 'The Receiving Party agrees to maintain the confidentiality of all information disclosed by the Disclosing Party for a period of {confidential_period} months from the date of disclosure.',
+        order: 1,
+        is_required: true,
+        is_customizable: true,
+        variables: ['confidential_period']
+      }
+    ],
+    conditions: [],
+    is_customizable: true,
+    requires_signatures: true,
+    auto_generate: true
+  },
+  {
+    id: 'pool-investment-agreement',
+    name: 'Pool Investment Agreement',
+    description: 'Agreement for pooled investment with multiple investors',
+    category: 'pool',
+    parties: [
+      {
+        id: 'pool_manager',
+        name: 'Pool Manager',
+        role: 'pool',
+        type: 'individual',
+        responsibilities: ['Manage pooled funds', 'Make investment decisions', 'Provide reports'],
+        rights: ['Management fees', 'Decision making authority'],
+        obligations: ['Fiduciary duty', 'Transparency', 'Regular reporting']
+      },
+      {
+        id: 'pool_members',
+        name: 'Pool Members',
+        role: 'investor',
+        type: 'individual',
+        responsibilities: ['Provide capital', 'Vote on major decisions'],
+        rights: ['Proportional returns', 'Voting rights', 'Transparency'],
+        obligations: ['Timely contributions', 'Confidentiality']
+      }
+    ],
+    variables: [
+      {
+        key: 'pool_name',
+        label: 'Pool Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter pool name'
+      },
+      {
+        key: 'total_pool_amount',
+        label: 'Total Pool Amount',
+        type: 'currency',
+        required: true
+      },
+      {
+        key: 'management_fee',
+        label: 'Management Fee (%)',
+        type: 'percentage',
+        required: true,
+        default_value: 2,
+        validation: { min: 0, max: 10 }
+      },
+      {
+        key: 'carried_interest',
+        label: 'Carried Interest (%)',
+        type: 'percentage',
+        required: true,
+        default_value: 20,
+        validation: { min: 0, max: 50 }
+      }
+    ],
+    sections: [
+      {
+        id: 'pool_structure',
+        title: 'Pool Structure',
+        content: 'The {pool_name} investment pool is established with a total capital commitment of {total_pool_amount}.',
+        order: 1,
+        is_required: true,
+        is_customizable: true,
+        variables: ['pool_name', 'total_pool_amount']
+      },
+      {
+        id: 'fee_structure',
+        title: 'Fee Structure',
+        content: 'Management fee: {management_fee}% annually. Carried interest: {carried_interest}% of profits.',
+        order: 2,
+        is_required: true,
+        is_customizable: true,
+        variables: ['management_fee', 'carried_interest']
+      }
+    ],
+    conditions: [],
+    is_customizable: true,
+    requires_signatures: true,
+    auto_generate: true
+  }
+];
+
+// Agreement management functions
 export class AgreementManager {
   private agreements: Agreement[] = [];
-  private templates: AgreementTemplate[] = [];
+  private templates: AgreementTemplate[] = DEFAULT_AGREEMENT_TEMPLATES;
 
   constructor() {}
 
@@ -256,9 +599,196 @@ export class AgreementManager {
       needsAttention: this.getAgreementsNeedingAttention(userId).length,
     };
   }
+
+  // Get all templates
+  getTemplates(category?: string): AgreementTemplate[] {
+    if (category) {
+      return this.templates.filter(t => t.category === category);
+    }
+    return this.templates;
+  }
+
+  // Get template by ID
+  getTemplate(id: string): AgreementTemplate | undefined {
+    return this.templates.find(t => t.id === id);
+  }
+
+  // Add custom template
+  addTemplate(template: AgreementTemplate): void {
+    this.templates.push(template);
+  }
+
+  // Generate agreement from template
+  generateAgreement(
+    templateId: string,
+    variables: Record<string, any>,
+    parties: AgreementParty[],
+    opportunityId?: string
+  ): GeneratedAgreement {
+    const template = this.getTemplate(templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+
+    // Validate required variables
+    const requiredVars = template.variables.filter(v => v.required);
+    for (const reqVar of requiredVars) {
+      if (!variables[reqVar.key]) {
+        throw new Error(`Required variable ${reqVar.key} is missing`);
+      }
+    }
+
+    // Generate content by replacing variables in sections
+    let content = '';
+    for (const section of template.sections.sort((a, b) => a.order - b.order)) {
+      let sectionContent = section.content;
+      
+      // Replace variables in section content
+      for (const varKey of section.variables) {
+        const value = variables[varKey];
+        if (value !== undefined) {
+          sectionContent = sectionContent.replace(new RegExp(`{${varKey}}`, 'g'), String(value));
+        }
+      }
+      
+      content += `\n\n## ${section.title}\n\n${sectionContent}`;
+    }
+
+    return {
+      id: `agreement_${Date.now()}`,
+      template_id: templateId,
+      title: template.name,
+      parties,
+      variables,
+      content,
+      status: 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      signatures: [],
+      conditions_met: [],
+      conditions_pending: template.conditions.map(c => c.id),
+      opportunity_id: opportunityId
+    };
+  }
+
+  // Add party to agreement
+  addParty(agreement: GeneratedAgreement, party: AgreementParty): GeneratedAgreement {
+    return {
+      ...agreement,
+      parties: [...agreement.parties, party],
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  // Sign agreement
+  signAgreement(
+    agreement: GeneratedAgreement,
+    partyId: string,
+    signatureData?: string
+  ): GeneratedAgreement {
+    const party = agreement.parties.find(p => p.id === partyId);
+    if (!party) {
+      throw new Error(`Party ${partyId} not found in agreement`);
+    }
+
+    const signature: AgreementSignature = {
+      party_id: partyId,
+      party_name: party.name,
+      party_role: party.role,
+      signed_at: new Date().toISOString(),
+      signature_method: 'electronic',
+      signature_data: signatureData
+    };
+
+    const signatures = [...agreement.signatures, signature];
+    const allPartiesSigned = agreement.parties.every(p => 
+      signatures.some(s => s.party_id === p.id)
+    );
+
+    return {
+      ...agreement,
+      signatures,
+      status: allPartiesSigned ? 'signed' : 'pending_signature',
+      signed_at: allPartiesSigned ? new Date().toISOString() : agreement.signed_at,
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  // Check and execute conditions
+  checkConditions(agreement: GeneratedAgreement): GeneratedAgreement {
+    const template = this.getTemplate(agreement.template_id);
+    if (!template) return agreement;
+
+    const conditionsMet: string[] = [...agreement.conditions_met];
+    const conditionsPending: string[] = [];
+
+    for (const condition of template.conditions) {
+      if (conditionsMet.includes(condition.id)) continue;
+
+      let shouldExecute = true;
+      for (const cond of condition.conditions) {
+        const value = agreement.variables[cond.field] || agreement.status;
+        let meetsCondition = false;
+
+        switch (cond.operator) {
+          case 'equals':
+            meetsCondition = value === cond.value;
+            break;
+          case 'not_equals':
+            meetsCondition = value !== cond.value;
+            break;
+          case 'greater_than':
+            meetsCondition = Number(value) > Number(cond.value);
+            break;
+          case 'less_than':
+            meetsCondition = Number(value) < Number(cond.value);
+            break;
+          case 'contains':
+            meetsCondition = String(value).includes(String(cond.value));
+            break;
+          case 'not_contains':
+            meetsCondition = !String(value).includes(String(cond.value));
+            break;
+          case 'exists':
+            meetsCondition = value !== undefined && value !== null;
+            break;
+          case 'not_exists':
+            meetsCondition = value === undefined || value === null;
+            break;
+        }
+
+        if (!meetsCondition) {
+          shouldExecute = false;
+          break;
+        }
+      }
+
+      if (shouldExecute) {
+        conditionsMet.push(condition.id);
+        // Execute actions
+        for (const action of condition.actions) {
+          this.executeAction(action, agreement);
+        }
+      } else {
+        conditionsPending.push(condition.id);
+      }
+    }
+
+    return {
+      ...agreement,
+      conditions_met: conditionsMet,
+      conditions_pending: conditionsPending,
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  private executeAction(action: any, agreement: GeneratedAgreement): void {
+    // Implementation would integrate with other systems
+    console.log(`Executing action: ${action.type} for agreement ${agreement.id}`);
+  }
 }
 
-// Export a singleton instance
+// Export singleton instance
 export const agreementManager = new AgreementManager();
 
 // Helper functions

@@ -1,0 +1,382 @@
+{
+  "id": "pool-investment-agreement",
+  "name": "Pool Investment Agreement",
+  "description": "Investment agreement for pooled capital investments where pool leadership are the signatories",
+  "category": "pool",
+  "parties": [
+    {
+      "id": "entrepreneur",
+      "name": "Entrepreneur/Company",
+      "role": "entrepreneur",
+      "type": "company",
+      "responsibilities": [
+        "Provide business plan and financial projections",
+        "Meet agreed milestones and deliverables",
+        "Provide regular progress updates and financial reports",
+        "Maintain proper corporate governance",
+        "Use investment funds for agreed business purposes"
+      ],
+      "rights": [
+        "Receive investment capital as agreed",
+        "Use funds for business development",
+        "Maintain operational control subject to investor rights",
+        "Access to pool expertise and network"
+      ],
+      "obligations": [
+        "Diligent business operation and management",
+        "Transparency in financial and operational matters",
+        "Compliance with applicable laws and regulations",
+        "Protection of investor interests",
+        "Timely communication of material events"
+      ]
+    },
+    {
+      "id": "pool_manager",
+      "name": "Pool Manager/Lead Investor",
+      "role": "pool",
+      "type": "individual",
+      "responsibilities": [
+        "Manage pooled investment funds",
+        "Make investment decisions on behalf of pool members",
+        "Provide regular reports to pool members",
+        "Represent pool in all dealings with the company",
+        "Coordinate voting and decision-making among pool members"
+      ],
+      "rights": [
+        "Sign agreements on behalf of the pool",
+        "Receive management fees",
+        "Make investment decisions within agreed parameters",
+        "Access to business information and reports",
+        "Voting rights on major decisions"
+      ],
+      "obligations": [
+        "Act in the best interests of all pool members",
+        "Provide transparent reporting to pool members",
+        "Timely funding as per agreed schedule",
+        "Confidentiality of business information",
+        "Fiduciary duty to pool members"
+      ]
+    },
+    {
+      "id": "pool_members",
+      "name": "Pool Members",
+      "role": "investor",
+      "type": "individual",
+      "responsibilities": [
+        "Provide capital contribution as agreed",
+        "Participate in pool voting on major decisions",
+        "Maintain confidentiality of business information"
+      ],
+      "rights": [
+        "Receive proportional returns based on contribution",
+        "Vote on major pool decisions",
+        "Access to pool reports and updates",
+        "Right to withdraw from pool subject to terms"
+      ],
+      "obligations": [
+        "Timely capital contributions",
+        "Confidentiality of business information",
+        "Support pool decisions once made",
+        "No individual interference in company operations"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "key": "company_name",
+      "label": "Company Name",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter the legal company name"
+    },
+    {
+      "key": "pool_name",
+      "label": "Pool Name",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter the investment pool name"
+    },
+    {
+      "key": "pool_manager_name",
+      "label": "Pool Manager Name",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter the pool manager's full name"
+    },
+    {
+      "key": "total_pool_amount",
+      "label": "Total Pool Investment Amount",
+      "type": "currency",
+      "required": true,
+      "validation": {
+        "min": 10000
+      },
+      "placeholder": "Enter total pool investment amount"
+    },
+    {
+      "key": "equity_percentage",
+      "label": "Equity Percentage for Pool",
+      "type": "percentage",
+      "required": true,
+      "validation": {
+        "min": 0,
+        "max": 100
+      },
+      "placeholder": "Enter equity percentage for the pool"
+    },
+    {
+      "key": "investment_date",
+      "label": "Investment Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "business_description",
+      "label": "Business Description",
+      "type": "text",
+      "required": true,
+      "placeholder": "Describe the business and investment purpose"
+    },
+    {
+      "key": "use_of_funds",
+      "label": "Use of Funds",
+      "type": "text",
+      "required": true,
+      "placeholder": "Specify how the investment will be used"
+    },
+    {
+      "key": "pool_members_list",
+      "label": "Pool Members",
+      "type": "text",
+      "required": true,
+      "placeholder": "List all pool members and their contribution amounts"
+    },
+    {
+      "key": "management_fee",
+      "label": "Management Fee (%)",
+      "type": "percentage",
+      "required": true,
+      "default_value": 2,
+      "validation": {
+        "min": 0,
+        "max": 10
+      }
+    },
+    {
+      "key": "carried_interest",
+      "label": "Carried Interest (%)",
+      "type": "percentage",
+      "required": true,
+      "default_value": 20,
+      "validation": {
+        "min": 0,
+        "max": 50
+      }
+    },
+    {
+      "key": "voting_threshold",
+      "label": "Voting Threshold for Major Decisions (%)",
+      "type": "percentage",
+      "required": true,
+      "default_value": 75,
+      "validation": {
+        "min": 50,
+        "max": 100
+      }
+    },
+    {
+      "key": "board_seats",
+      "label": "Board Seats for Pool",
+      "type": "number",
+      "required": false,
+      "default_value": 1,
+      "validation": {
+        "min": 0,
+        "max": 5
+      }
+    },
+    {
+      "key": "information_rights",
+      "label": "Information Rights",
+      "type": "select",
+      "required": true,
+      "options": [
+        "Quarterly financial reports",
+        "Monthly operational updates",
+        "Annual audited financials",
+        "Real-time access to financial data"
+      ],
+      "default_value": "Quarterly financial reports"
+    },
+    {
+      "key": "exit_strategy",
+      "label": "Exit Strategy",
+      "type": "select",
+      "required": false,
+      "options": [
+        "IPO",
+        "Strategic sale",
+        "Management buyout",
+        "Secondary sale",
+        "Other"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "preamble",
+      "title": "Preamble",
+      "content": "This Pool Investment Agreement (the \"Agreement\") is entered into on {investment_date} between {company_name} (the \"Company\"), {pool_manager_name} as Pool Manager of {pool_name} (the \"Pool\"), and the Pool Members listed below (collectively, the \"Parties\").",
+      "order": 1,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": ["investment_date", "company_name", "pool_manager_name", "pool_name"]
+    },
+    {
+      "id": "pool_structure",
+      "title": "Pool Structure and Authority",
+      "content": "The {pool_name} investment pool is established with a total capital commitment of {total_pool_amount}. The Pool Manager, {pool_manager_name}, is authorized to sign this Agreement and all related documents on behalf of the Pool and its members. Pool Members are listed as follows: {pool_members_list}",
+      "order": 2,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["pool_name", "total_pool_amount", "pool_manager_name", "pool_members_list"]
+    },
+    {
+      "id": "investment_terms",
+      "title": "Investment Terms",
+      "content": "The Pool agrees to invest {total_pool_amount} in exchange for {equity_percentage}% equity in the Company. This represents a pooled capital investment where the Pool Manager acts as the authorized signatory on behalf of all Pool Members.",
+      "order": 3,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["total_pool_amount", "equity_percentage"]
+    },
+    {
+      "id": "business_purpose",
+      "title": "Business Purpose",
+      "content": "The Company operates in the following business: {business_description}. The investment will be used for: {use_of_funds}.",
+      "order": 4,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["business_description", "use_of_funds"]
+    },
+    {
+      "id": "pool_governance",
+      "title": "Pool Governance",
+      "content": "The Pool Manager shall have authority to make investment decisions and sign agreements on behalf of the Pool. Major decisions affecting the Pool's investment require approval by {voting_threshold}% of Pool Members. The Pool shall have {board_seats} board seat(s) in the Company, to be filled by the Pool Manager or their designee.",
+      "order": 5,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["voting_threshold", "board_seats"]
+    },
+    {
+      "id": "fee_structure",
+      "title": "Pool Fee Structure",
+      "content": "The Pool Manager shall receive a management fee of {management_fee}% annually on the Pool's investment and {carried_interest}% carried interest on profits above the initial investment amount.",
+      "order": 6,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["management_fee", "carried_interest"]
+    },
+    {
+      "id": "information_rights",
+      "title": "Information Rights",
+      "content": "The Company shall provide the Pool Manager with {information_rights} and such other information as reasonably requested. The Pool Manager shall distribute relevant information to Pool Members as appropriate.",
+      "order": 7,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["information_rights"]
+    },
+    {
+      "id": "pool_member_rights",
+      "title": "Pool Member Rights and Obligations",
+      "content": "Pool Members shall have proportional rights and obligations based on their contribution to the Pool. Individual Pool Members may not directly interfere with Company operations but may participate in Pool voting on major decisions. The Pool Manager represents the collective interests of all Pool Members.",
+      "order": 8,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": []
+    },
+    {
+      "id": "exit_rights",
+      "title": "Exit Rights",
+      "content": "{exit_strategy ? 'The Parties agree to pursue an exit strategy through ' + exit_strategy + '.' : 'The Parties will work together to identify and pursue appropriate exit opportunities.'} The Pool Manager shall coordinate exit decisions with Pool Members and ensure proportional distribution of proceeds.",
+      "order": 9,
+      "is_required": false,
+      "is_customizable": true,
+      "variables": ["exit_strategy"]
+    },
+    {
+      "id": "confidentiality",
+      "title": "Confidentiality",
+      "content": "Each Party agrees to maintain the confidentiality of all proprietary and confidential information disclosed by the other Party. Pool Members shall maintain confidentiality of business information shared by the Pool Manager.",
+      "order": 10,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": []
+    },
+    {
+      "id": "governing_law",
+      "title": "Governing Law and Dispute Resolution",
+      "content": "This Agreement shall be governed by the laws of the jurisdiction where the Company is incorporated. Any disputes arising from this Agreement shall be resolved through good faith negotiations, and if unsuccessful, through binding arbitration.",
+      "order": 11,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": []
+    }
+  ],
+  "conditions": [
+    {
+      "id": "funding_release",
+      "name": "Pool Funding Release",
+      "description": "Release pooled funds upon agreement signature",
+      "trigger": "on_signature",
+      "conditions": [
+        {
+          "field": "status",
+          "operator": "equals",
+          "value": "signed"
+        }
+      ],
+      "actions": [
+        {
+          "type": "release_funds",
+          "target": "escrow_account",
+          "parameters": {
+            "amount": "{total_pool_amount}"
+          }
+        },
+        {
+          "type": "notify",
+          "target": "pool_members",
+          "parameters": {
+            "message": "Pool investment agreement signed and funds released"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pool_voting",
+      "name": "Pool Voting Notification",
+      "description": "Notify pool members of voting requirements",
+      "trigger": "manual",
+      "conditions": [
+        {
+          "field": "major_decision",
+          "operator": "exists",
+          "value": true
+        }
+      ],
+      "actions": [
+        {
+          "type": "notify",
+          "target": "pool_members",
+          "parameters": {
+            "message": "Major decision requires pool voting - please respond within 48 hours"
+          }
+        }
+      ]
+    }
+  ],
+  "is_customizable": true,
+  "requires_signatures": true,
+  "auto_generate": true
+} 

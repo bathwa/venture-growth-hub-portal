@@ -1,424 +1,349 @@
 {
-  "id": "abathwa-investment-agreement",
-  "name": "AbaThwa Incubator Investment Agreement",
-  "description": "Comprehensive investment partnership agreement for AbaThwa Incubator investments",
+  "id": "flexible-investment-agreement",
+  "name": "Flexible Investment Agreement",
+  "description": "Comprehensive investment agreement template for any parties involved in a deal",
   "category": "investment",
-  "context": ["entrepreneur", "investor", "admin"],
-  "version": "1.0",
-  "variables": {
-    "partner_name": {
-      "type": "text",
-      "label": "Partner/Investee Company Name",
-      "required": true,
-      "placeholder": "Enter company name"
-    },
-    "partner_address": {
-      "type": "text",
-      "label": "Business Address",
-      "required": true,
-      "placeholder": "Enter business address"
-    },
-    "project_title": {
-      "type": "text",
-      "label": "Project Title",
-      "required": true,
-      "placeholder": "Enter project title"
-    },
-    "effective_date": {
-      "type": "date",
-      "label": "Effective Date",
-      "required": true
-    },
-    "investment_amount": {
-      "type": "currency",
-      "label": "Investment Amount (USD)",
-      "required": true,
-      "currency": "USD"
-    },
-    "investment_type": {
-      "type": "select",
-      "label": "Investment Type",
-      "required": true,
-      "options": [
-        "Equity Partnership",
-        "Project Investment",
-        "Order Fulfillment Investment"
+  "parties": [
+    {
+      "id": "entrepreneur",
+      "name": "Entrepreneur/Company",
+      "role": "entrepreneur",
+      "type": "company",
+      "responsibilities": [
+        "Provide business plan and financial projections",
+        "Meet agreed milestones and deliverables",
+        "Provide regular progress updates and financial reports",
+        "Maintain proper corporate governance",
+        "Use investment funds for agreed business purposes"
+      ],
+      "rights": [
+        "Receive investment capital as agreed",
+        "Use funds for business development",
+        "Maintain operational control subject to investor rights",
+        "Access to investor expertise and network"
+      ],
+      "obligations": [
+        "Diligent business operation and management",
+        "Transparency in financial and operational matters",
+        "Compliance with applicable laws and regulations",
+        "Protection of investor interests",
+        "Timely communication of material events"
       ]
     },
-    "investor_profit_percentage": {
-      "type": "number",
-      "label": "Investor Profit Share (%)",
-      "required": true,
-      "min": 0,
-      "max": 100
-    },
-    "client_profit_percentage": {
-      "type": "number",
-      "label": "Client Profit Share (%)",
-      "required": true,
-      "min": 0,
-      "max": 100
-    },
-    "security_item": {
-      "type": "text",
-      "label": "Security Item",
-      "required": false,
-      "placeholder": "Description of security provided"
-    },
-    "security_identification": {
-      "type": "text",
-      "label": "Security Unique Identification",
-      "required": false,
-      "placeholder": "Serial number, registration number, etc."
-    },
-    "partner_representative": {
-      "type": "text",
-      "label": "Partner/Investee Representative Name",
-      "required": true,
-      "placeholder": "Full name of representative"
-    },
-    "partner_title": {
-      "type": "text",
-      "label": "Partner/Investee Title",
-      "required": true,
-      "placeholder": "Position/title"
-    },
-    "partner_contact": {
-      "type": "text",
-      "label": "Contact Number",
-      "required": true,
-      "placeholder": "Phone number"
-    },
-    "partner_email": {
-      "type": "email",
-      "label": "Email Address",
-      "required": true,
-      "placeholder": "Email address"
-    },
-    "witness_name": {
-      "type": "text",
-      "label": "Witness Name",
-      "required": true,
-      "placeholder": "Full name of witness"
-    },
-    "witness_contact": {
-      "type": "text",
-      "label": "Witness Contact Number",
-      "required": true,
-      "placeholder": "Witness phone number"
+    {
+      "id": "investor",
+      "name": "Investor",
+      "role": "investor",
+      "type": "individual",
+      "responsibilities": [
+        "Provide investment capital as agreed",
+        "Support business growth through expertise and network",
+        "Participate in major decisions as specified",
+        "Maintain confidentiality of business information"
+      ],
+      "rights": [
+        "Receive agreed equity percentage or returns",
+        "Access to business information and reports",
+        "Voting rights on major decisions",
+        "Right of first refusal on future funding rounds",
+        "Board representation if specified"
+      ],
+      "obligations": [
+        "Timely funding as per agreed schedule",
+        "Confidentiality of business information",
+        "No interference in day-to-day operations",
+        "Act in good faith and support business success"
+      ]
     }
-  },
-  "content": {
-    "header": {
-      "title": "ABATHWA INCUBATOR INVESTMENTS AND PARTNERSHIPS AGREEMENT",
-      "subtitle": "Building legacies",
-      "documentType": "Agreement for Investment Partnership",
-      "documentNumber": "DOC NUMBER:___________"
+  ],
+  "variables": [
+    {
+      "key": "company_name",
+      "label": "Company Name",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter the legal company name"
     },
-    "parties": {
-      "investor": {
-        "name": "AbaThwa Incubator PBC",
-        "description": "in it's own capacity or alternatively in partnership with Ithusi Club PBC, Nala Finance PBC, Kwagodlwayo PBC, Hlalonhe PBC and the Power Club, together as an (\"Investor\"), a company registered under the laws of Zimbabwe, with its principal place of business at 849 Mawabeni, Esigodini, Zimbabwe."
+    {
+      "key": "company_registration",
+      "label": "Company Registration Number",
+      "type": "text",
+      "required": false,
+      "placeholder": "Enter company registration number"
+    },
+    {
+      "key": "investment_amount",
+      "label": "Investment Amount",
+      "type": "currency",
+      "required": true,
+      "validation": {
+        "min": 1000
       },
-      "partner": {
-        "name": "{{partner_name}}",
-        "description": "(\"Partner/Investee\"), a registered company or sole trader with business address at {{partner_address}}, Zimbabwe."
+      "placeholder": "Enter investment amount"
+    },
+    {
+      "key": "equity_percentage",
+      "label": "Equity Percentage",
+      "type": "percentage",
+      "required": true,
+      "validation": {
+        "min": 0,
+        "max": 100
+      },
+      "placeholder": "Enter equity percentage"
+    },
+    {
+      "key": "investment_date",
+      "label": "Investment Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "business_description",
+      "label": "Business Description",
+      "type": "text",
+      "required": true,
+      "placeholder": "Describe the business and investment purpose"
+    },
+    {
+      "key": "use_of_funds",
+      "label": "Use of Funds",
+      "type": "text",
+      "required": true,
+      "placeholder": "Specify how the investment will be used"
+    },
+    {
+      "key": "milestones",
+      "label": "Key Milestones",
+      "type": "text",
+      "required": false,
+      "placeholder": "List key business milestones and timelines"
+    },
+    {
+      "key": "board_seats",
+      "label": "Board Seats for Investor",
+      "type": "number",
+      "required": false,
+      "default_value": 0,
+      "validation": {
+        "min": 0,
+        "max": 10
       }
     },
-    "project": {
-      "title": "{{project_title}}",
-      "effectiveDate": "{{effective_date}}"
+    {
+      "key": "voting_rights",
+      "label": "Voting Rights",
+      "type": "select",
+      "required": true,
+      "options": [
+        "Proportional to equity",
+        "Enhanced voting rights",
+        "Standard voting rights",
+        "No voting rights"
+      ],
+      "default_value": "Proportional to equity"
     },
-    "sections": [
-      {
-        "title": "1. Purpose",
-        "content": "This Agreement outlines the terms under which AbaThwa Incubator will provide funding for the Partner/Investee's project titled \"{{project_title}}\" as a short-term project or an equity micro-investment."
-      },
-      {
-        "title": "2. Investment Details",
-        "subsections": [
-          {
-            "title": "2.1 Investment Amount",
-            "content": "USD {{investment_amount}}"
-          },
-          {
-            "title": "2.2 Investment Type",
-            "content": "{{investment_type}}"
-          }
-        ]
-      },
-      {
-        "title": "3. Partner/Investee's Obligations",
-        "subsections": [
-          {
-            "content": "3.1 Provide a detailed project plan, including the use of funds, expected outcomes, and timeline."
-          },
-          {
-            "content": "3.2 Provide any supporting documentation like contracts, purchase orders, guarantees, etc from clients and guarantors."
-          },
-          {
-            "content": "3.3 Provide a detailed execution plan including procurement and delivery plans."
-          },
-          {
-            "content": "3.4 Use the investment solely for the purposes outlined in the project plan."
-          },
-          {
-            "content": "3.5 Provide regular updates on project progress to the Investor."
-          },
-          {
-            "content": "3.6 Ensure all legal and regulatory requirements are met for the project execution."
-          },
-          {
-            "content": "3.7 Safeguard the Capital invested and ensure it's not lost and does not go unaccounted for under any circumstances."
-          }
-        ]
-      },
-      {
-        "title": "4. Investor's Obligations",
-        "subsections": [
-          {
-            "content": "4.1 Provide the agreed investment amount upon signing this Agreement."
-          },
-          {
-            "content": "4.2 Engage in the project execution as a partner, offering guidance or support as when and where required."
-          },
-          {
-            "content": "4.3 Refrain from interfering with the Partner/Investee's business operations beyond the scope of this investment unless otherwise it has been determined that the Partner/Investee has failed to fulfill their obligations."
-          }
-        ]
-      },
-      {
-        "title": "5. Profit Sharing",
-        "subsections": [
-          {
-            "title": "5.1 The profits from the business or project will be divided as follows:",
-            "subsections": [
-              {
-                "content": "5.1.1 Investor: {{investor_profit_percentage}}% of net profits"
-              },
-              {
-                "content": "5.1.2 Client: {{client_profit_percentage}}% of net profits"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "6. Risk and Loss",
-        "subsections": [
-          {
-            "content": "6.1 Both parties share the risk of the business or project as specified below:"
-          },
-          {
-            "content": "6.2 In case of an unavoidable loss or business/project catastrophic failure, the investment will be considered lost, with no further obligation from either party except as agreed below:"
-          },
-          {
-            "content": "6.1.1 [Where the Partner/Investee agreed to provide security for the investment, such security shall be passed on to the investor]."
-          }
-        ]
-      },
-      {
-        "title": "7. Security",
-        "subsections": [
-          {
-            "content": "7.1 Where there is no formal registration, appropriate paperwork, contract and no guarantees on the business or project, rendering an investment high risk but still desirable, the investee shall provide agreeable safeguards against capital loss. The safeguards must be cognizant of the value of the invested amount. Additionally, or separately, security may be provided against the capital until such a point in time where an amount exceeding the Capital has been recouped from the partnership business. The onus and cost of delivery of such security items, including any costs related to change of ownership is on the Partner/Investee. The delivery date is 5 days after it is determined that such security shall be delivered. Events leading to the delivery of security shall include:"
-          },
-          {
-            "content": "7.1.1 Failure by the Partner/Investee to stick to the dictates of this and any other attached agreements and terms relating to this particular investment."
-          },
-          {
-            "content": "7.1.2 Loss of capital through ineptitude/incompetence, lack of discipline and irrational or irregular behavior by the Partner/Investee."
-          },
-          {
-            "content": "7.1.3 Such security provided is as detailed below:"
-          },
-          {
-            "content": "7.2 Security Item: {{security_item}}"
-          },
-          {
-            "content": "7.3 Unique Identification: {{security_identification}}"
-          }
-        ]
-      },
-      {
-        "title": "8. Termination",
-        "subsections": [
-          {
-            "content": "8.1 This Agreement may be terminated by mutual consent or if either party breaches its terms significantly."
-          },
-          {
-            "content": "8.2 Upon termination, the Partner/Investee shall return all funds to the Investor within [5] days."
-          }
-        ]
-      },
-      {
-        "title": "9. Confidentiality",
-        "content": "Both parties agree to keep confidential all information concerning the project, business strategies, and any other proprietary information disclosed during the partnership."
-      },
-      {
-        "title": "10. Governing Law",
-        "content": "This Agreement shall be governed by and construed in accordance with the laws of Zimbabwe, without regard to its conflict of law provisions."
-      },
-      {
-        "title": "11. Dispute Resolution",
-        "content": "Any disputes arising under this Agreement will be resolved through mediation. If mediation fails, the dispute will be settled by arbitration in Bulawayo, according to the laws of the relevant arbitration system approached. Where none of the methods is effective, Litigation may be considered."
-      },
-      {
-        "title": "12. Miscellaneous",
-        "subsections": [
-          {
-            "content": "12.1 Entire Agreement: This document constitutes the entire agreement between the parties with respect to its subject matter."
-          },
-          {
-            "content": "12.2 Amendments: No amendment or modification hereof shall be valid unless in writing and signed by both parties."
-          },
-          {
-            "content": "12.3 Assignment: Neither party may assign this Agreement or any rights hereunder without the written consent of the other party."
-          }
-        ]
-      },
-      {
-        "title": "13. Paperwork",
-        "content": "This Agreement is executed in duplicate, each party retaining one copy. By signing above, both parties acknowledge that they have read, understood, and agree to be bound by the terms of this Agreement. The Investee/Partner, in addition to other requirements herein-stated, is required to submit: 13.1 Copies of their ID and 13.2 Proof of Residency together with the same copies for their witness. 13.3 Copies of their Company's registration documents."
-      },
-      {
-        "title": "14. Payments",
-        "subsections": [
-          {
-            "content": "14.1 Abathwa Incubator may disburse the agreed funds in any form including Cash, Bank Transfer, Mobile Money or Card payments."
-          },
-          {
-            "content": "14.2 The Investee pays back into Abathwa Incubator's Innbucks Account: Account name: Abathwa Incubator, Account number: 013113351190001, Account type: Current, Wallet number: +263 78 998 9619."
-          }
-        ]
-      },
-      {
-        "title": "15. Signatures",
-        "subsections": [
-          {
-            "title": "15.1 For AbaThwa Incubator:",
-            "content": "[______________________ ] [Representative] Date: ________________"
-          },
-          {
-            "title": "15.2 For the Partner/Investee:",
-            "content": "[Partner /Investee Name: {{partner_representative}}] [Partner/ Investee Title: {{partner_title}}] Date: ________________ Contact number: {{partner_contact}} Email address: {{partner_email}}"
-          },
-          {
-            "title": "15.3 Witness:",
-            "content": "[Name of Witness: {{witness_name}}] Date: ________________ Contact Number: {{witness_contact}}"
-          }
-        ]
-      },
-      {
-        "title": "16. Terms and Conditions",
-        "subsections": [
-          {
-            "title": "16.1. Entrepreneur Commitments",
-            "content": "By signing above, I agree to the following terms and conditions, which are integral to the investment agreement:",
-            "subsections": [
-              {
-                "content": "16.1.1 Reporting & Milestone Tracking Integrity: I commit to providing timely and accurate reports on the project/business journey. I understand and agree that there shall be no gaps in the project/business journey markdown's milestone tracking component attributed to my reporting."
-              },
-              {
-                "content": "16.1.2 Safeguards Against Loss: I commit to implementing and maintaining reasonable safeguards to protect against capital and revenue loss related to the invested project/business."
-              },
-              {
-                "content": "16.1.3 Access to Operations & Records: I agree to provide the Investor(s) with reasonable access to the project/business operations and all related financial records, as and when required, in accordance with the terms agreed upon."
-              },
-              {
-                "content": "16.1.4 Upholding Agreements & Timely Payments: I commit to upholding all agreements entered into on this platform, including but not limited to, making all stipulated payments (e.g., dividends, interest, repayments) precisely on time according to the provided dates and schedules."
-              },
-              {
-                "content": "16.1.5 Open Communication Channels: I commit to maintaining open, transparent, and regular communication channels with the Investor(s) throughout the entire course of the investment, promptly addressing inquiries and providing updates."
-              },
-              {
-                "content": "16.1.6 Regulatory Compliance: I confirm that the project/business will operate in full compliance with all relevant government regulations, laws, and statutory requirements applicable in its jurisdiction (Matabeleland and Zimbabwe)."
-              },
-              {
-                "content": "16.1.7 Confidentiality: I agree to maintain strict confidentiality regarding sensitive business contents and proprietary information shared by or with the Investor(s) and the Abathwa Capital platform, as defined in any separate Non-Disclosure Agreement (NDA) or the platform's terms."
-              },
-              {
-                "content": "16.1.8 Fund Utilization & Repurposing: I commit to using the received funds solely for the requested and approved purposes as outlined in the investment proposal. Should any repurposing of funds become necessary, I will apply for explicit authority and obtain written approval from the Investor(s) prior to such repurposing."
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "nda_section": {
-      "title": "16.2. Non Disclosure Agreement",
-      "content": "This Non-Disclosure Agreement (hereinafter \"Agreement\"), effective as of this day the Agreement has been signed, is made and entered into BY AND BETWEEN: Abathwa Incubator PBC duly incorporated and existing under the laws of Zimbabwe, with its principal place of business at 849 Mawabeni, Esigodini, (hereinafter \"Disclosing Party\"); AND The investment recipient, (hereinafter \"Receiving Party\"). (The Disclosing Party and Receiving Party are hereinafter collectively referred to as \"Parties\" and individually as \"Party\"). WHEREAS, the Parties are engaging in discussions regarding potential Investment opportunities, business collaborations, due diligence and other related issues (the \"Purpose\"); WHEREAS, in connection with the Purpose, the Disclosing Party may disclose to the Receiving Party certain confidential, proprietary, and/or sensitive information; NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows:",
-      "subsections": [
+    {
+      "key": "exit_strategy",
+      "label": "Exit Strategy",
+      "type": "select",
+      "required": false,
+      "options": [
+        "IPO",
+        "Strategic sale",
+        "Management buyout",
+        "Secondary sale",
+        "Other"
+      ]
+    },
+    {
+      "key": "drag_along_rights",
+      "label": "Drag-Along Rights",
+      "type": "boolean",
+      "required": false,
+      "default_value": true
+    },
+    {
+      "key": "tag_along_rights",
+      "label": "Tag-Along Rights",
+      "type": "boolean",
+      "required": false,
+      "default_value": true
+    },
+    {
+      "key": "anti_dilution",
+      "label": "Anti-Dilution Protection",
+      "type": "boolean",
+      "required": false,
+      "default_value": false
+    },
+    {
+      "key": "information_rights",
+      "label": "Information Rights",
+      "type": "select",
+      "required": true,
+      "options": [
+        "Quarterly financial reports",
+        "Monthly operational updates",
+        "Annual audited financials",
+        "Real-time access to financial data"
+      ],
+      "default_value": "Quarterly financial reports"
+    }
+  ],
+  "sections": [
+    {
+      "id": "preamble",
+      "title": "Preamble",
+      "content": "This Investment Agreement (the \"Agreement\") is entered into on {investment_date} between {company_name} (the \"Company\") and the Investor(s) listed below (collectively, the \"Parties\").",
+      "order": 1,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": ["investment_date", "company_name"]
+    },
+    {
+      "id": "investment_terms",
+      "title": "Investment Terms",
+      "content": "The Investor agrees to invest {investment_amount} in exchange for {equity_percentage}% equity in the Company. The investment will be made in accordance with the terms and conditions set forth in this Agreement.",
+      "order": 2,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["investment_amount", "equity_percentage"]
+    },
+    {
+      "id": "business_purpose",
+      "title": "Business Purpose",
+      "content": "The Company operates in the following business: {business_description}. The investment will be used for: {use_of_funds}.",
+      "order": 3,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["business_description", "use_of_funds"]
+    },
+    {
+      "id": "governance",
+      "title": "Governance and Voting Rights",
+      "content": "The Investor shall have {voting_rights} voting rights. {board_seats > 0 ? 'The Investor shall have the right to appoint ' + board_seats + ' director(s) to the Company\'s board of directors.' : ''}",
+      "order": 4,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["voting_rights", "board_seats"]
+    },
+    {
+      "id": "information_rights",
+      "title": "Information Rights",
+      "content": "The Company shall provide the Investor with {information_rights} and such other information as reasonably requested by the Investor.",
+      "order": 5,
+      "is_required": true,
+      "is_customizable": true,
+      "variables": ["information_rights"]
+    },
+    {
+      "id": "milestones",
+      "title": "Business Milestones",
+      "content": "{milestones ? 'The Company agrees to achieve the following milestones: ' + milestones : 'The Company shall use commercially reasonable efforts to grow the business and achieve agreed performance targets.'}",
+      "order": 6,
+      "is_required": false,
+      "is_customizable": true,
+      "variables": ["milestones"]
+    },
+    {
+      "id": "exit_rights",
+      "title": "Exit Rights",
+      "content": "{exit_strategy ? 'The Parties agree to pursue an exit strategy through ' + exit_strategy + '.' : 'The Parties will work together to identify and pursue appropriate exit opportunities.'} {drag_along_rights ? 'The Investor shall have drag-along rights.' : ''} {tag_along_rights ? 'The Investor shall have tag-along rights.' : ''}",
+      "order": 7,
+      "is_required": false,
+      "is_customizable": true,
+      "variables": ["exit_strategy", "drag_along_rights", "tag_along_rights"]
+    },
+    {
+      "id": "anti_dilution",
+      "title": "Anti-Dilution Protection",
+      "content": "{anti_dilution ? 'The Investor shall have anti-dilution protection in the event of future funding rounds at lower valuations.' : 'The Investor acknowledges that future funding rounds may result in dilution of their equity position.'}",
+      "order": 8,
+      "is_required": false,
+      "is_customizable": true,
+      "variables": ["anti_dilution"]
+    },
+    {
+      "id": "confidentiality",
+      "title": "Confidentiality",
+      "content": "Each Party agrees to maintain the confidentiality of all proprietary and confidential information disclosed by the other Party and to use such information solely for the purpose of this investment relationship.",
+      "order": 9,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": []
+    },
+    {
+      "id": "governing_law",
+      "title": "Governing Law and Dispute Resolution",
+      "content": "This Agreement shall be governed by the laws of the jurisdiction where the Company is incorporated. Any disputes arising from this Agreement shall be resolved through good faith negotiations, and if unsuccessful, through binding arbitration.",
+      "order": 10,
+      "is_required": true,
+      "is_customizable": false,
+      "variables": []
+    }
+  ],
+  "conditions": [
+    {
+      "id": "funding_release",
+      "name": "Funding Release",
+      "description": "Release funds upon agreement signature and completion of due diligence",
+      "trigger": "on_signature",
+      "conditions": [
         {
-          "title": "16.2.1. DEFINITION OF CONFIDENTIAL INFORMATION",
-          "content": "\"Confidential Information\" means any and all information, whether oral, written, electronic, visual, or in any other form, disclosed by the Disclosing Party to the Receiving Party, directly or indirectly, before or after the Effective Date, related to the Purpose, including but not limited to: a. Business plans, business partners, strategies, marketing plans, customer lists, investor lists, financial information, forecasts, and projections. b. Technical data, research, product ideas, designs, specifications, software (source code and object code), algorithms, processes, inventions, and intellectual property. c. Proprietary information, trade secrets, know-how, and methodologies. d. Information concerning employees, contractors, partners, and other third parties. e. Any information designated by the Disclosing Party as confidential, proprietary, or secret at the time of disclosure or generally regarded as secret by business, national and general standards as well as data and privacy protection laws. f. Any information derived from or created by the Receiving Party that contains, reflects, or is based upon, in whole or in part, any Confidential Information."
-        },
-        {
-          "title": "16.2.2. EXCLUSIONS FROM CONFIDENTIAL INFORMATION",
-          "content": "Confidential Information shall not include information that: a. Is or becomes publicly available through no fault or breach of this Agreement by the Receiving Party. b. Was rightfully known to the Receiving Party prior to its disclosure by the Disclosing Party, without breach of any confidentiality obligation. c. Is rightfully obtained by the Receiving Party from a third party without restriction as to disclosure, and without breach of any confidentiality obligation. d. Is independently developed by the Receiving Party without reference to or use of the Disclosing Party's Confidential Information. e. Is disclosed with the prior written approval of the Disclosing Party."
-        },
-        {
-          "title": "16.2.3. OBLIGATIONS OF RECEIVING PARTY",
-          "content": "The Receiving Party agrees: a. To maintain all Confidential Information in strict confidence and to use the same degree of care to protect the confidentiality of the Confidential Information as it uses to protect its own confidential information of a similar nature, but in no event less than a reasonable degree of care. b. To use the Confidential Information solely for the Purpose stated herein and for no other purpose whatsoever. c. Not to disclose, copy, reproduce, distribute, or otherwise make available the Confidential Information to any third party, except to its employees, directors, officers, agents, and advisors (collectively, \"Representatives\") who have a legitimate need to know such information for the Purpose and who are bound by confidentiality obligations no less restrictive than those contained herein. The Receiving Party shall be responsible for any breach of this Agreement by its Representatives. d. To notify the Disclosing Party immediately upon discovery of any unauthorized use or disclosure of Confidential Information."
-        },
-        {
-          "title": "16.2.4. REQUIRED DISCLOSURE",
-          "content": "If the Receiving Party is required by law, regulation, or by the order of a court or governmental agency to disclose any Confidential Information, the Receiving Party shall: a. Provide the Disclosing Party with prompt prior written notice of such requirement (to the extent legally permissible) so that the Disclosing Party may seek a protective order or other appropriate remedy. b. Cooperate with the Disclosing Party in its efforts to obtain such a protective order or other remedy. c. If a protective order or other remedy is not obtained, disclose only that portion of the Confidential Information that is legally required, and use commercially reasonable efforts to obtain assurance that confidential treatment will be accorded to the disclosed information."
-        },
-        {
-          "title": "16.2.5. RETURN OR DESTRUCTION OF CONFIDENTIAL INFORMATION",
-          "content": "Upon the written request of the Disclosing Party, or upon the termination of discussions concerning the Purpose, the Receiving Party shall promptly return to the Disclosing Party or destroy all Confidential Information (and all copies, extracts, analyses, and other reproductions thereof) disclosed by the Disclosing Party to the Receiving Party. The Receiving Party shall certify in writing to the Disclosing Party that all Confidential Information has been returned or destroyed. Notwithstanding the foregoing, the Receiving Party may retain copies of Confidential Information solely to the extent required by applicable law, regulation, or its internal compliance policies, provided that such retained copies remain subject to the confidentiality obligations of this Agreement."
-        },
-        {
-          "title": "16.2.6. TERM AND SURVIVAL",
-          "content": "This Agreement shall become effective on the Effective Date of the Agreement and shall remain in full force and effect until 7 years from the Effective Date, or until such time as the Confidential Information ceases to be confidential as set forth in Section 2, whichever occurs later. The obligations of confidentiality hereunder shall survive the termination of this Agreement for the specified term."
-        },
-        {
-          "title": "16.2.7. NO LICENSE OR WARRANTY",
-          "content": "This Agreement does not grant the Receiving Party any right, title, interest, or license, express or implied, in or to any Confidential Information, or any intellectual property rights of the Disclosing Party. All Confidential Information is provided \"AS IS\" and without any warranty, express or implied, regarding its accuracy or completeness."
-        },
-        {
-          "title": "16.2.8. REMEDIES",
-          "content": "The Receiving Party acknowledges that a breach of this Agreement would cause irreparable harm to the Disclosing Party for which monetary damages alone would not be an adequate remedy. Accordingly, the Disclosing Party shall be entitled to seek injunctive relief (in addition to any other remedies available at law or in equity) to prevent any actual or threatened unauthorized use or disclosure of its Confidential Information."
-        },
-        {
-          "title": "16.2.9. GOVERNING LAW AND JURISDICTION",
-          "content": "This Agreement shall be governed by and construed in accordance with the laws of Zimbabwe, without regard to its conflict of laws principles. Any disputes arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Zimbabwe."
-        },
-        {
-          "title": "16.2.10. ENTIRE AGREEMENT",
-          "content": "This Agreement constitutes the entire agreement between the Parties concerning the subject matter hereof and supersedes all prior agreements, understandings, negotiations, and discussions, whether oral or written, between the Parties."
-        },
-        {
-          "title": "16.2.11. AMENDMENT",
-          "content": "This Agreement may only be amended or modified by a written instrument duly executed by both Parties."
-        },
-        {
-          "title": "16.2.12. SEVERABILITY",
-          "content": "If any provision of this Agreement is found to be invalid, illegal, or unenforceable, the validity, legality, and enforceability of the remaining provisions shall not in any way be affected or impaired thereby."
-        },
-        {
-          "title": "16.2.13. COUNTERPARTS",
-          "content": "This Agreement may be executed in counterparts, each of which shall be deemed an original, but all of which together shall constitute one and the same instrument."
+          "field": "status",
+          "operator": "equals",
+          "value": "signed"
         }
       ],
-      "signatures": {
-        "disclosing_party": {
-          "name": "Abathwa Incubator PBC",
-          "representative": "V. Ncube",
-          "title": "Director"
+      "actions": [
+        {
+          "type": "release_funds",
+          "target": "escrow_account",
+          "parameters": {
+            "amount": "{investment_amount}"
+          }
         },
-        "receiving_party": {
-          "name": "Refer to the Agreement above (15.2 and 15.3)"
+        {
+          "type": "notify",
+          "target": "all_parties",
+          "parameters": {
+            "message": "Investment agreement signed and funds released"
+          }
         }
-      }
+      ]
+    },
+    {
+      "id": "milestone_validation",
+      "name": "Milestone Validation",
+      "description": "Validate business milestones and trigger reporting",
+      "trigger": "on_milestone",
+      "conditions": [
+        {
+          "field": "milestone_status",
+          "operator": "equals",
+          "value": "completed"
+        }
+      ],
+      "actions": [
+        {
+          "type": "notify",
+          "target": "investor",
+          "parameters": {
+            "message": "Milestone completed - review required"
+          }
+        },
+        {
+          "type": "update_status",
+          "target": "opportunity",
+          "parameters": {
+            "status": "milestone_completed"
+          }
+        }
+      ]
     }
-  },
-  "metadata": {
-    "created": "2024-01-01",
-    "updated": "2024-01-01",
-    "author": "AbaThwa Incubator",
-    "version": "1.0",
-    "tags": ["investment", "partnership", "zimbabwe", "abathwa", "nda"]
-  }
+  ],
+  "is_customizable": true,
+  "requires_signatures": true,
+  "auto_generate": true
 } 

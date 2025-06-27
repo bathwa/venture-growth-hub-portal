@@ -27,7 +27,12 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Settings,
+  Upload,
+  X,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { 
   InvestmentPool, 
@@ -48,8 +53,11 @@ import {
   executeInvestment,
   getPoolStats,
   activatePool,
-  closePool
+  closePool,
+  poolManager
 } from '@/lib/pools';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 interface PoolManagementProps {
   userId: string;
@@ -89,7 +97,14 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     performanceFee: '',
     autoApprove: false,
     requireVote: true,
-    maxMembers: ''
+    maxMembers: '',
+    investment_focus: 'general',
+    minimum_investment: 1000,
+    target_amount: 100000,
+    management_fee: 2,
+    carried_interest: 20,
+    is_active: true,
+    is_public: true
   });
 
   // Add member form
@@ -112,6 +127,12 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     voteType: 'approve' as const,
     comments: ''
   });
+
+  const [isCreatingPool, setIsCreatingPool] = useState(false);
+  const [isEditingPool, setIsEditingPool] = useState(false);
+  const [editingPool, setEditingPool] = useState<InvestmentPool | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
 
   useEffect(() => {
     loadPoolData();
@@ -155,27 +176,63 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
 
   const handleCreatePool = async () => {
     try {
-      const pool = await createInvestmentPool({
+      // Validate required fields
+      if (!createForm.name?.trim()) {
+        toast.error("Pool name is required");
+        return;
+      }
+      if (!createForm.description?.trim()) {
+        toast.error("Pool description is required");
+        return;
+      }
+      if (!createForm.targetAmount || createForm.targetAmount <= 0) {
+        toast.error("Target amount must be positive");
+        return;
+      }
+
+      // Handle logo upload
+      let logoUrl = '';
+      if (logoFile) {
+        // In a real app, you would upload to cloud storage here
+        logoUrl = URL.createObjectURL(logoFile);
+        toast.info("Logo uploaded successfully");
+      }
+
+      const pool: Omit<InvestmentPool, 'id' | 'created_at' | 'updated_at'> = {
         name: createForm.name,
         description: createForm.description,
-        type: createForm.type,
-        targetAmount: parseFloat(createForm.targetAmount),
-        minimumInvestment: parseFloat(createForm.minimumInvestment),
-        maximumInvestment: parseFloat(createForm.maximumInvestment),
-        currency: createForm.currency,
-        createdBy: userId,
+        logo_url: logoUrl,
+        investment_focus: createForm.investment_focus,
+        minimum_investment: createForm.minimum_investment,
+        target_amount: createForm.target_amount,
+        current_amount: 0,
+        management_fee: createForm.management_fee,
+        carried_interest: createForm.carried_interest,
+        is_active: createForm.is_active,
+        is_public: createForm.is_public,
+        created_by: userId,
         managerId: userId,
-        investmentStrategy: createForm.investmentStrategy,
-        riskProfile: createForm.riskProfile,
+        type: createForm.type,
+        risk_profile: createForm.riskProfile,
         termLength: parseInt(createForm.termLength),
-        managementFee: parseFloat(createForm.managementFee),
-        performanceFee: parseFloat(createForm.performanceFee),
+        managementFee: createForm.managementFee,
+        performanceFee: createForm.performanceFee,
         autoApprove: createForm.autoApprove,
         requireVote: createForm.requireVote,
-        maxMembers: parseInt(createForm.maxMembers)
-      });
-      
-      setPools([pool, ...pools]);
+        maxMembers: parseInt(createForm.maxMembers),
+        current_members: 0,
+        max_members: parseInt(createForm.maxMembers),
+        total_committed: 0,
+        total_invested: 0,
+        total_distributed: 0,
+        voting_threshold: 75,
+        status: 'forming',
+        members: [],
+        voting_power: 0
+      };
+
+      const createdPool = poolManager.createPool(pool);
+      setPools([createdPool, ...pools]);
       setShowCreateDialog(false);
       setCreateForm({
         name: '',
@@ -192,10 +249,21 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
         performanceFee: '',
         autoApprove: false,
         requireVote: true,
-        maxMembers: ''
+        maxMembers: '',
+        investment_focus: 'general',
+        minimum_investment: 1000,
+        target_amount: 100000,
+        management_fee: 2,
+        carried_interest: 20,
+        is_active: true,
+        is_public: true
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create pool');
+      setLogoFile(null);
+      setLogoPreview('');
+      toast.success("Pool created successfully");
+    } catch (error) {
+      toast.error("Failed to create pool");
+      console.error(error);
     }
   };
 
@@ -290,6 +358,63 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     }
   };
 
+  const handleUpdatePool = async () => {
+    if (!editingPool) return;
+
+    try {
+      // Handle logo upload
+      let logoUrl = editingPool.logo_url;
+      if (logoFile) {
+        logoUrl = URL.createObjectURL(logoFile);
+        toast.info("Logo updated successfully");
+      }
+
+      const updatedPool = {
+        ...editingPool,
+        logo_url: logoUrl
+      };
+
+      poolManager.updatePool(editingPool.id, updatedPool);
+      setPools(poolManager.getPools());
+      setIsEditingPool(false);
+      setEditingPool(null);
+      setLogoFile(null);
+      setLogoPreview('');
+      toast.success("Pool updated successfully");
+    } catch (error) {
+      toast.error("Failed to update pool");
+      console.error(error);
+    }
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    if (editingPool) {
+      setEditingPool({ ...editingPool, logo_url: '' });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'forming': return 'bg-yellow-100 text-yellow-800';
@@ -319,6 +444,21 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
       case 'aggressive': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getInvestmentFocusColor = (focus: string) => {
+    switch (focus) {
+      case 'technology': return 'bg-blue-100 text-blue-800';
+      case 'healthcare': return 'bg-green-100 text-green-800';
+      case 'real_estate': return 'bg-purple-100 text-purple-800';
+      case 'energy': return 'bg-yellow-100 text-yellow-800';
+      case 'finance': return 'bg-indigo-100 text-indigo-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getProgressPercentage = (current: number, target: number) => {
+    return Math.min((current / target) * 100, 100);
   };
 
   if (loading) {
@@ -529,6 +669,25 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
                         onChange={(e) => setCreateForm({...createForm, maxMembers: e.target.value})}
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="investmentFocus">Investment Focus</Label>
+                    <Select 
+                      value={createForm.investment_focus} 
+                      onValueChange={(value) => setCreateForm({...createForm, investment_focus: value as any})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="technology">Technology</SelectItem>
+                        <SelectItem value="healthcare">Healthcare</SelectItem>
+                        <SelectItem value="real_estate">Real Estate</SelectItem>
+                        <SelectItem value="energy">Energy</SelectItem>
+                        <SelectItem value="finance">Finance</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <DialogFooter>
@@ -957,6 +1116,103 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
           <DialogFooter>
             <Button onClick={() => handleVote('temp-id')}>Submit Vote</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Pool Dialog */}
+      <Dialog open={isEditingPool} onOpenChange={setIsEditingPool}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Pool</DialogTitle>
+            <DialogDescription>
+              Update pool information and settings
+            </DialogDescription>
+          </DialogHeader>
+          {editingPool && (
+            <div className="space-y-4">
+              <div>
+                <Label>Pool Name</Label>
+                <Input 
+                  value={editingPool.name}
+                  onChange={(e) => setEditingPool({ ...editingPool, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea 
+                  value={editingPool.description}
+                  onChange={(e) => setEditingPool({ ...editingPool, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Pool Logo</Label>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="edit-logo-upload"
+                    />
+                    <Label htmlFor="edit-logo-upload" className="cursor-pointer">
+                      <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition-colors">
+                        {(logoPreview || editingPool.logo_url) ? (
+                          <img 
+                            src={logoPreview || editingPool.logo_url} 
+                            alt="Logo preview" 
+                            className="w-full h-full object-cover rounded-lg" 
+                          />
+                        ) : (
+                          <Upload className="h-6 w-6 text-gray-400" />
+                        )}
+                      </div>
+                    </Label>
+                  </div>
+                  {(logoPreview || editingPool.logo_url) && (
+                    <Button variant="outline" size="sm" onClick={removeLogo}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Management Fee (%)</Label>
+                  <Input 
+                    type="number"
+                    value={editingPool.management_fee}
+                    onChange={(e) => setEditingPool({ ...editingPool, management_fee: parseFloat(e.target.value) })}
+                    min="0"
+                    max="10"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <Label>Carried Interest (%)</Label>
+                  <Input 
+                    type="number"
+                    value={editingPool.carried_interest}
+                    onChange={(e) => setEditingPool({ ...editingPool, carried_interest: parseFloat(e.target.value) })}
+                    min="0"
+                    max="50"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={editingPool.is_active}
+                  onCheckedChange={(checked) => setEditingPool({ ...editingPool, is_active: checked })}
+                />
+                <Label>Active Pool</Label>
+              </div>
+              <Button onClick={handleUpdatePool} className="w-full">
+                Update Pool
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
