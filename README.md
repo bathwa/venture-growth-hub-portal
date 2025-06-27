@@ -71,3 +71,24 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Deterministic Rule Based Engine (DRBE)
+- Located at `src/lib/drbe.ts`
+- Centralizes all business logic, validation, and workflow rules
+- Validates opportunities, milestones, payments, and post-processes AI outputs
+
+## TensorFlow.js AI Integration
+- Located at `src/lib/ai.ts`
+- Loads and runs TensorFlow.js models for risk scoring and other AI tasks
+- Models should be placed in `public/models/` (e.g., `public/models/risk_model/model.json`)
+- Supports offline inference for PWA/desktop use
+
+### Example Usage
+```ts
+import { DRBE } from './lib/drbe';
+import { getRiskScore } from './lib/ai';
+
+const { valid, errors } = DRBE.validateOpportunity(opportunity);
+const riskScore = await getRiskScore([/* input features */]);
+const safeScore = DRBE.validateAIOutput('risk_score', riskScore);
+```
