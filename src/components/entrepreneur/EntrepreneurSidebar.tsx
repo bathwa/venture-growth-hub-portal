@@ -24,9 +24,11 @@ const menuItems = [
 ];
 
 export function EntrepreneurSidebar() {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  const isCollapsed = state === "collapsed";
 
   const isActive = (path: string) => {
     if (path === "/entrepreneur") {
@@ -42,10 +44,10 @@ export function EntrepreneurSidebar() {
   };
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible>
+    <Sidebar className={isCollapsed ? "w-16" : "w-64"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "hidden" : ""}>
+          <SidebarGroupLabel className={isCollapsed ? "hidden" : ""}>
             Entrepreneur Portal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -59,7 +61,7 @@ export function EntrepreneurSidebar() {
                       end={item.url === "/entrepreneur"}
                     >
                       <span className="text-lg">{item.icon}</span>
-                      {!collapsed && <span>{item.title}</span>}
+                      {!isCollapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
