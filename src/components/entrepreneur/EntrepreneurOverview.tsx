@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { DRBE, Milestone, MilestoneStatus } from "@/lib/drbe";
 
 export function EntrepreneurOverview() {
   const navigate = useNavigate();
@@ -53,6 +53,29 @@ export function EntrepreneurOverview() {
     { action: "Milestone updated", opportunity: "AI Healthcare Platform", detail: "Market analysis completed", time: "1 day ago" },
     { action: "Investor inquiry", opportunity: "Green Energy Startup", detail: "Additional documentation requested", time: "2 days ago" },
   ];
+
+  // Mock milestones
+  const milestones: Milestone[] = [
+    {
+      target_date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+      status: "pending",
+      last_update: new Date(Date.now() - 86400000 * 3).toISOString(),
+    },
+    {
+      target_date: new Date(Date.now() + 86400000 * 3).toISOString(), // in 3 days
+      status: "pending",
+      last_update: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      target_date: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+      status: "completed",
+      last_update: new Date(Date.now() - 86400000 * 1).toISOString(),
+    },
+  ];
+
+  function getMilestoneStatus(milestone: Milestone): MilestoneStatus {
+    return DRBE.evaluateMilestoneStatus(milestone);
+  }
 
   return (
     <div className="space-y-6">
@@ -138,6 +161,32 @@ export function EntrepreneurOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Milestones Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Milestones</CardTitle>
+          <CardDescription>Track your progress and see overdue milestones</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {milestones.map((milestone, idx) => {
+              const status = getMilestoneStatus(milestone);
+              return (
+                <div key={idx} className="flex items-center gap-4 p-2 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
+                    <div className="text-sm text-gray-600">Last update: {new Date(milestone.last_update).toLocaleDateString()}</div>
+                  </div>
+                  <Badge variant={status === 'overdue' ? 'destructive' : status === 'completed' ? 'default' : 'secondary'}>
+                    {status === 'overdue' ? 'Overdue 🚩' : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <Card>
