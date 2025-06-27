@@ -1,3 +1,4 @@
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,18 +8,20 @@ import { useState } from "react";
 
 const mockOpportunities = [
   {
-    id: 1,
+    id: "1",
     title: "Green Energy Startup",
     type: "going_concern" as OpportunityType,
     status: "published" as OpportunityStatus,
     fields: { equity_offered: "10" },
     milestones: [
       {
+        title: "Product Development",
         target_date: new Date(Date.now() - 86400000 * 2).toISOString(),
         status: "pending" as MilestoneStatus,
         last_update: new Date(Date.now() - 86400000 * 3).toISOString(),
       },
       {
+        title: "Market Research",
         target_date: new Date(Date.now() + 86400000 * 3).toISOString(),
         status: "pending" as MilestoneStatus,
         last_update: new Date(Date.now() - 86400000).toISOString(),
@@ -26,13 +29,14 @@ const mockOpportunities = [
     ],
   },
   {
-    id: 2,
+    id: "2",
     title: "AI Healthcare Platform",
     type: "order_fulfillment" as OpportunityType,
     status: "published" as OpportunityStatus,
     fields: { order_details: "1000 units" },
     milestones: [
       {
+        title: "Legal Review",
         target_date: new Date(Date.now() - 86400000 * 1).toISOString(),
         status: "completed" as MilestoneStatus,
         last_update: new Date(Date.now() - 86400000 * 1).toISOString(),
@@ -42,8 +46,8 @@ const mockOpportunities = [
 ];
 
 const InvestorDashboard = () => {
-  const [riskScores, setRiskScores] = useState<{ [id: number]: number | null }>({});
-  const [validationErrors, setValidationErrors] = useState<{ [id: number]: string[] }>({});
+  const [riskScores, setRiskScores] = useState<{ [id: string]: number | null }>({});
+  const [validationErrors, setValidationErrors] = useState<{ [id: string]: string[] }>({});
   const [aiError, setAiError] = useState<string | null>(null);
 
   async function handleScore(opp: typeof mockOpportunities[0]) {
@@ -104,7 +108,8 @@ const InvestorDashboard = () => {
                           return (
                             <div key={idx} className="flex items-center gap-4 p-2 border rounded-lg">
                               <div className="flex-1">
-                                <div className="font-medium">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
+                                <div className="font-medium">{milestone.title}</div>
+                                <div className="text-sm text-gray-600">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
                                 <div className="text-sm text-gray-600">Last update: {new Date(milestone.last_update).toLocaleDateString()}</div>
                               </div>
                               <span className={`px-2 py-1 rounded ${status === 'overdue' ? 'bg-red-200 text-red-800' : status === 'completed' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'}`}>

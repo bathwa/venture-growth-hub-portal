@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DRBE, OpportunityType, OpportunityStatus } from "@/lib/drbe";
@@ -6,21 +7,21 @@ import { useState } from "react";
 
 const mockOpportunities = [
   {
-    id: 1,
+    id: "1",
     title: "Green Energy Startup",
     type: "going_concern" as OpportunityType,
     status: "published" as OpportunityStatus,
     fields: { equity_offered: "10" },
   },
   {
-    id: 2,
+    id: "2",
     title: "AI Healthcare Platform",
     type: "order_fulfillment" as OpportunityType,
     status: "published" as OpportunityStatus,
     fields: { order_details: "1000 units" },
   },
   {
-    id: 3,
+    id: "3",
     title: "Sustainable Fashion Brand",
     type: "project_partnership" as OpportunityType,
     status: "draft" as OpportunityStatus,
@@ -29,8 +30,8 @@ const mockOpportunities = [
 ];
 
 export function OpportunityManagement() {
-  const [riskScores, setRiskScores] = useState<{ [id: number]: number | null }>({});
-  const [validationErrors, setValidationErrors] = useState<{ [id: number]: string[] }>({});
+  const [riskScores, setRiskScores] = useState<{ [id: string]: number | null }>({});
+  const [validationErrors, setValidationErrors] = useState<{ [id: string]: string[] }>({});
   const [aiError, setAiError] = useState<string | null>(null);
 
   async function handleValidateAndScore(opp: typeof mockOpportunities[0]) {

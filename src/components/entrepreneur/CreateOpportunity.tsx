@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { DRBE, OpportunityType } from "@/lib/drbe";
+import { DRBE, OpportunityType, OpportunityStatus } from "@/lib/drbe";
 import { getRiskScore } from "@/lib/ai";
 
 const opportunityTypes = [
@@ -33,7 +34,7 @@ export function CreateOpportunity() {
     const opportunity = {
       title: values.title,
       type: values.type,
-      status: 'draft',
+      status: 'draft' as OpportunityStatus,
       fields: {
         equity_offered: values.equity_offered,
         order_details: values.order_details,

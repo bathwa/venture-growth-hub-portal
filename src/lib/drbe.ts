@@ -1,4 +1,5 @@
 
+
 // Deterministic Rule Based Engine (DRBE)
 // Centralized business logic for validation, workflow, and AI output control
 
@@ -127,7 +128,7 @@ export const DRBE = {
     
     if (milestone.status === 'completed') return 'completed';
     if (milestone.status === 'skipped') return 'skipped';
-    if (now > target && milestone.status !== 'completed') return 'overdue';
+    if (now > target && milestone.status !== 'completed' && milestone.status !== 'skipped') return 'overdue';
     
     return milestone.status;
   },
@@ -363,3 +364,4 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
   const symbol = currencySymbols[currency.toUpperCase()] || currency;
   return `${symbol}${amount.toLocaleString()}`;
 };
+

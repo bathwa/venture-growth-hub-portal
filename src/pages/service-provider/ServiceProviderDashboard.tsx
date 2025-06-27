@@ -1,3 +1,4 @@
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DRBE, Milestone, MilestoneStatus } from "@/lib/drbe";
@@ -29,6 +30,7 @@ const mockTasks = [
 function getTaskStatus(task: typeof mockTasks[0]): MilestoneStatus {
   // Reuse DRBE milestone evaluation for task deadlines
   return DRBE.evaluateMilestoneStatus({
+    title: task.title,
     target_date: task.dueDate,
     status: task.status,
     last_update: task.lastUpdate,

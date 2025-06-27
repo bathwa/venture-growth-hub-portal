@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,16 +58,19 @@ export function EntrepreneurOverview() {
   // Mock milestones
   const milestones: Milestone[] = [
     {
+      title: "Product Development",
       target_date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
       status: "pending",
       last_update: new Date(Date.now() - 86400000 * 3).toISOString(),
     },
     {
+      title: "Market Research",
       target_date: new Date(Date.now() + 86400000 * 3).toISOString(), // in 3 days
       status: "pending",
       last_update: new Date(Date.now() - 86400000).toISOString(),
     },
     {
+      title: "Legal Documentation",
       target_date: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
       status: "completed",
       last_update: new Date(Date.now() - 86400000 * 1).toISOString(),
@@ -175,7 +179,8 @@ export function EntrepreneurOverview() {
               return (
                 <div key={idx} className="flex items-center gap-4 p-2 border rounded-lg">
                   <div className="flex-1">
-                    <div className="font-medium">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
+                    <div className="font-medium">{milestone.title}</div>
+                    <div className="text-sm text-gray-600">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
                     <div className="text-sm text-gray-600">Last update: {new Date(milestone.last_update).toLocaleDateString()}</div>
                   </div>
                   <Badge variant={status === 'overdue' ? 'destructive' : status === 'completed' ? 'default' : 'secondary'}>
