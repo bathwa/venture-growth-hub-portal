@@ -87,12 +87,32 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={
+        isAuthenticated ? 
+          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
+           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
+           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
+           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           <Navigate to="/login" replace />) : 
+          <Index />
+      } />
       <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/" replace /> : <Login />
+        isAuthenticated ? 
+          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
+           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
+           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
+           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           <Navigate to="/" replace />) : 
+          <Login />
       } />
       <Route path="/signup" element={
-        isAuthenticated ? <Navigate to="/" replace /> : <Signup />
+        isAuthenticated ? 
+          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
+           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
+           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
+           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           <Navigate to="/" replace />) : 
+          <Signup />
       } />
 
       {/* Protected Dashboard Routes */}
