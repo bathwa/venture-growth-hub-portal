@@ -1,6 +1,8 @@
 // Notification Management System
 // Handles all notifications, alerts, and communication across the platform
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface Notification {
   id: string;
   user_id: string;
@@ -22,6 +24,7 @@ export interface Notification {
     related_ids?: string[];
     tags?: string[];
   };
+  is_read: boolean;
 }
 
 export interface NotificationTemplate {
@@ -321,6 +324,7 @@ export class NotificationManager {
       expires_at: expiresAt,
       created_at: new Date().toISOString(),
       metadata,
+      is_read: false,
     };
 
     this.notifications.push(notification);
@@ -745,4 +749,41 @@ export const createSecurityAlertNotification = (
     alert_title: alertTitle,
     alert_message: alertMessage,
   });
-}; 
+};
+
+export class NotificationService {
+  static async sendNotification(userId: string, type: string, message: string, data?: any): Promise<Notification> {
+    const { data: notif, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type,
+        message,
+        data: data || {},
+        is_read: false,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return notif;
+  }
+
+  static async getNotifications(userId: string): Promise<Notification[]> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async markAsRead(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id);
+    if (error) throw error;
+  }
+} 

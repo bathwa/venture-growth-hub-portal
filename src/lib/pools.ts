@@ -87,6 +87,139 @@ export interface PoolDistribution {
   per_member_breakdown: Record<string, number>;
 }
 
+export interface Pool {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  status: string;
+  target_amount: number;
+  minimum_investment: number;
+  maximum_investment: number;
+  currency: string;
+  created_by: string;
+  manager_id: string;
+  investment_strategy: string;
+  risk_profile: string;
+  term_length_months: number;
+  management_fee_percentage: number;
+  performance_fee_percentage: number;
+  auto_approve_investments: boolean;
+  require_majority_vote: boolean;
+  max_members: number;
+  current_members: number;
+  total_committed: number;
+  total_invested: number;
+  total_distributed: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PoolMember {
+  id: string;
+  pool_id: string;
+  user_id: string;
+  role: string;
+  committed_amount: number;
+  invested_amount: number;
+  distributed_amount: number;
+  voting_power: number;
+  kyc_verified: boolean;
+  investment_preferences: string[];
+  status: string;
+  joined_at: string;
+  created_at: string;
+}
+
+export class PoolService {
+  static async createPool(data: Partial<Pool>): Promise<Pool> {
+    const { data: pool, error } = await supabase
+      .from('investment_pools')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return pool;
+  }
+
+  static async getPools(): Promise<Pool[]> {
+    const { data, error } = await supabase
+      .from('investment_pools')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getPool(id: string): Promise<Pool | null> {
+    const { data, error } = await supabase
+      .from('investment_pools')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async updatePool(id: string, updates: Partial<Pool>): Promise<Pool> {
+    const { data, error } = await supabase
+      .from('investment_pools')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async deletePool(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('investment_pools')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  // Pool Members
+  static async addMember(poolId: string, userId: string, role: string): Promise<PoolMember> {
+    const { data, error } = await supabase
+      .from('pool_members')
+      .insert({ pool_id: poolId, user_id: userId, role })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async getMembers(poolId: string): Promise<PoolMember[]> {
+    const { data, error } = await supabase
+      .from('pool_members')
+      .select('*')
+      .eq('pool_id', poolId);
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async updateMember(id: string, updates: Partial<PoolMember>): Promise<PoolMember> {
+    const { data, error } = await supabase
+      .from('pool_members')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async removeMember(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('pool_members')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+}
+
 // --- Supabase-backed functions ---
 
 // Create new investment pool

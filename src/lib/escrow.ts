@@ -13,43 +13,131 @@ export interface EscrowAccount {
   opportunity_id: string;
   investor_id: string;
   entrepreneur_id: string;
-  type: EscrowType;
-  status: EscrowStatus;
+  type: string;
+  status: string;
   total_amount: number;
   available_balance: number;
   held_amount: number;
   currency: string;
+  release_conditions: string[];
+  auto_release_date: string | null;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
-  release_conditions: string[];
-  auto_release_date?: string;
-  admin_notes?: string;
 }
 
 export interface EscrowTransaction {
   id: string;
   escrow_account_id: string;
-  type: TransactionType;
+  type: string;
   amount: number;
   currency: string;
   reference: string;
   description: string;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  status: string;
   transaction_date: string;
-  processed_at?: string;
-  fee_amount?: number;
-  metadata?: Record<string, any>;
+  processed_at: string | null;
+  fee_amount: number | null;
+  metadata: any;
+  created_at: string;
 }
 
 export interface EscrowReleaseCondition {
   id: string;
   escrow_account_id: string;
-  condition_type: 'milestone_completion' | 'time_based' | 'manual_approval' | 'document_verification';
+  condition_type: string;
   description: string;
   is_met: boolean;
-  required_documents?: string[];
-  due_date?: string;
-  completed_at?: string;
+  required_documents: string[];
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export class EscrowService {
+  // Accounts
+  static async createAccount(data: Partial<EscrowAccount>): Promise<EscrowAccount> {
+    const { data: account, error } = await supabase
+      .from('escrow_accounts')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return account;
+  }
+
+  static async getAccountsByUser(userId: string): Promise<EscrowAccount[]> {
+    const { data, error } = await supabase
+      .from('escrow_accounts')
+      .select('*')
+      .or(`investor_id.eq.${userId},entrepreneur_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getAccount(id: string): Promise<EscrowAccount | null> {
+    const { data, error } = await supabase
+      .from('escrow_accounts')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  // Transactions
+  static async createTransaction(data: Partial<EscrowTransaction>): Promise<EscrowTransaction> {
+    const { data: tx, error } = await supabase
+      .from('escrow_transactions')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return tx;
+  }
+
+  static async getTransactions(accountId: string): Promise<EscrowTransaction[]> {
+    const { data, error } = await supabase
+      .from('escrow_transactions')
+      .select('*')
+      .eq('escrow_account_id', accountId)
+      .order('transaction_date', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Release Conditions
+  static async createReleaseCondition(data: Partial<EscrowReleaseCondition>): Promise<EscrowReleaseCondition> {
+    const { data: cond, error } = await supabase
+      .from('escrow_release_conditions')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return cond;
+  }
+
+  static async getReleaseConditions(accountId: string): Promise<EscrowReleaseCondition[]> {
+    const { data, error } = await supabase
+      .from('escrow_release_conditions')
+      .select('*')
+      .eq('escrow_account_id', accountId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async updateReleaseCondition(id: string, updates: Partial<EscrowReleaseCondition>): Promise<EscrowReleaseCondition> {
+    const { data, error } = await supabase
+      .from('escrow_release_conditions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
 }
 
 // --- Supabase-backed functions ---

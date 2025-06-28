@@ -1,6 +1,8 @@
 // Agreements Module
 // Aligned with the new Supabase schema using agreement_status and agreement_type enums
 
+import { supabase } from '@/integrations/supabase/client';
+
 export type AgreementStatus = 'draft' | 'pending' | 'signed' | 'expired' | 'terminated';
 export type AgreementType = 'nda' | 'investment_agreement' | 'service_agreement' | 'partnership_agreement' | 'escrow_agreement';
 
@@ -49,6 +51,10 @@ export interface AgreementTemplate {
   is_customizable: boolean;
   requires_signatures: boolean;
   auto_generate: boolean;
+  content: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AgreementVariable {
@@ -238,7 +244,11 @@ export const DEFAULT_AGREEMENT_TEMPLATES: AgreementTemplate[] = [
     ],
     is_customizable: true,
     requires_signatures: true,
-    auto_generate: true
+    auto_generate: true,
+    content: '',
+    created_by: '',
+    created_at: '',
+    updated_at: ''
   },
   {
     id: 'nda-agreement',
@@ -296,7 +306,11 @@ export const DEFAULT_AGREEMENT_TEMPLATES: AgreementTemplate[] = [
     conditions: [],
     is_customizable: true,
     requires_signatures: true,
-    auto_generate: true
+    auto_generate: true,
+    content: '',
+    created_by: '',
+    created_at: '',
+    updated_at: ''
   },
   {
     id: 'pool-investment-agreement',
@@ -377,7 +391,11 @@ export const DEFAULT_AGREEMENT_TEMPLATES: AgreementTemplate[] = [
     conditions: [],
     is_customizable: true,
     requires_signatures: true,
-    auto_generate: true
+    auto_generate: true,
+    content: '',
+    created_by: '',
+    created_at: '',
+    updated_at: ''
   }
 ];
 
@@ -795,4 +813,103 @@ export const agreementManager = new AgreementManager();
 export const getAgreementById = (id: string) => agreementManager.getAgreement(id);
 export const getUserPendingAgreements = (userId: string) => agreementManager.getPendingAgreements(userId);
 export const isAgreementFullySigned = (id: string) => agreementManager.isFullySigned(id);
-export const hasUserSignedAgreement = (agreementId: string, userId: string) => agreementManager.hasUserSigned(agreementId, userId); 
+export const hasUserSignedAgreement = (agreementId: string, userId: string) => agreementManager.hasUserSigned(agreementId, userId);
+
+export interface UserAgreement {
+  id: string;
+  template_id: string;
+  user_id: string;
+  status: string;
+  signed_at: string | null;
+  signature_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export class AgreementService {
+  // Templates
+  static async createTemplate(data: Partial<AgreementTemplate>): Promise<AgreementTemplate> {
+    const { data: template, error } = await supabase
+      .from('agreement_templates')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return template;
+  }
+
+  static async getTemplates(): Promise<AgreementTemplate[]> {
+    const { data, error } = await supabase
+      .from('agreement_templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async getTemplate(id: string): Promise<AgreementTemplate | null> {
+    const { data, error } = await supabase
+      .from('agreement_templates')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async updateTemplate(id: string, updates: Partial<AgreementTemplate>): Promise<AgreementTemplate> {
+    const { data, error } = await supabase
+      .from('agreement_templates')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  static async deleteTemplate(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('agreement_templates')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  // User Agreements
+  static async createUserAgreement(data: Partial<UserAgreement>): Promise<UserAgreement> {
+    const { data: agreement, error } = await supabase
+      .from('user_agreements')
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return agreement;
+  }
+
+  static async getUserAgreements(userId: string): Promise<UserAgreement[]> {
+    const { data, error } = await supabase
+      .from('user_agreements')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async signAgreement(id: string, signatureUrl: string): Promise<UserAgreement> {
+    const { data, error } = await supabase
+      .from('user_agreements')
+      .update({
+        status: 'signed',
+        signature_url: signatureUrl,
+        signed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+} 

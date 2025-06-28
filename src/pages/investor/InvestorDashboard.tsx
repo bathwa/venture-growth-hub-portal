@@ -1,70 +1,169 @@
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DRBE, OpportunityType, OpportunityStatus, Milestone, MilestoneStatus } from "@/lib/drbe";
-import { getRiskScore } from "@/lib/ai";
-import { useState } from "react";
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
+import { OpportunityService, Opportunity } from '@/lib/opportunities';
+import { KYCService } from '@/lib/kyc';
+import { NotificationService, Notification } from '@/lib/notifications';
+import { PoolService, Pool } from '@/lib/pools';
+import { toast } from 'sonner';
+import { 
+  TrendingUp, 
+  Users, 
+  DollarSign, 
+  FileText, 
+  Search, 
+  Eye, 
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Bell,
+  Building
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import InvestorDocumentWorkspace from "@/components/investor/InvestorDocumentWorkspace";
 import { InvestorSidebar } from "@/components/investor/InvestorSidebar";
 import ObserverManagement from "@/components/ui/observer-management";
 
-const mockOpportunities = [
-  {
-    id: "1",
-    title: "Green Energy Startup",
-    type: "going_concern" as OpportunityType,
-    status: "published" as OpportunityStatus,
-    fields: { equity_offered: "10" },
-    milestones: [
-      {
-        title: "Product Development",
-        target_date: new Date(Date.now() - 86400000 * 2).toISOString(),
-        status: "pending" as MilestoneStatus,
-        last_update: new Date(Date.now() - 86400000 * 3).toISOString(),
-      },
-      {
-        title: "Market Research",
-        target_date: new Date(Date.now() + 86400000 * 3).toISOString(),
-        status: "pending" as MilestoneStatus,
-        last_update: new Date(Date.now() - 86400000).toISOString(),
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "AI Healthcare Platform",
-    type: "order_fulfillment" as OpportunityType,
-    status: "published" as OpportunityStatus,
-    fields: { order_details: "1000 units" },
-    milestones: [
-      {
-        title: "Legal Review",
-        target_date: new Date(Date.now() - 86400000 * 1).toISOString(),
-        status: "completed" as MilestoneStatus,
-        last_update: new Date(Date.now() - 86400000 * 1).toISOString(),
-      },
-    ],
-  },
-];
+const InvestorDashboard = () => {
+  const { user } = useAuth();
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [pools, setPools] = useState<Pool[]>([]);
+  const [kycStatus, setKycStatus] = useState<string>('not_submitted');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load all published opportunities
+      const allOpportunities = await OpportunityService.getOpportunities('all');
+      const publishedOpportunities = allOpportunities.filter(opp => opp.status === 'published');
+      setOpportunities(publishedOpportunities);
+
+      // Load investment pools
+      const allPools = await PoolService.getPools();
+      setPools(allPools);
+
+      // Load KYC status
+      const status = await KYCService.getKycStatus(user!.id);
+      setKycStatus(status);
+
+      // Load notifications
+      const userNotifications = await NotificationService.getNotifications(user!.id);
+      setNotifications(userNotifications);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getKycStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getKycStatusText = (status: string) => {
+    switch (status) {
+      case 'verified': return 'Verified';
+      case 'pending': return 'Pending Review';
+      case 'rejected': return 'Rejected';
+      default: return 'Not Submitted';
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'going_concern': return 'Going Concern';
+      case 'order_fulfillment': return 'Order Fulfillment';
+      case 'project_partnership': return 'Project Partnership';
+      default: return type;
+    }
+  };
+
+  const totalInvestmentOpportunities = opportunities.length;
+  const totalPools = pools.length;
+  const averageRiskScore = opportunities.length > 0 
+    ? opportunities.reduce((sum, opp) => sum + (opp.risk_score || 0), 0) / opportunities.length 
+    : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <InvestorSidebar />
+        <div className="flex-1 flex flex-col">
+          <main className="flex-1 p-6 bg-gray-50">
+            <Routes>
+              <Route index element={<InvestorOverview />} />
+              <Route path="documents" element={<InvestorDocumentWorkspace />} />
+              <Route 
+                path="observers" 
+                element={
+                  <ObserverManagement
+                    userId={user!.id}
+                    entityId={user!.id}
+                    entityType="investment"
+                    entityName={user!.name}
+                  />
+                } 
+              />
+              <Route path="portfolio" element={<div>Portfolio Management</div>} />
+              <Route path="due-diligence" element={<div>Due Diligence</div>} />
+              <Route path="reports" element={<div>Investment Reports</div>} />
+              <Route path="profile" element={<div>Profile Management</div>} />
+            </Routes>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
 
 const InvestorOverview = () => {
   const [riskScores, setRiskScores] = useState<{ [id: string]: number | null }>({});
   const [validationErrors, setValidationErrors] = useState<{ [id: string]: string[] }>({});
   const [aiError, setAiError] = useState<string | null>(null);
 
-  async function handleScore(opp: typeof mockOpportunities[0]) {
-    const { valid, errors } = DRBE.validateOpportunity(opp);
+  async function handleScore(opp: Opportunity) {
+    const { valid, errors } = OpportunityService.validateOpportunity(opp);
     setValidationErrors((prev) => ({ ...prev, [opp.id]: errors }));
     if (!valid) return;
     const input = [parseFloat(opp.fields.equity_offered) || 0];
-    const score = await getRiskScore(input);
-    setRiskScores((prev) => ({ ...prev, [opp.id]: DRBE.validateAIOutput('risk_score', score) }));
+    const score = await OpportunityService.getRiskScore(input);
+    setRiskScores((prev) => ({ ...prev, [opp.id]: OpportunityService.validateAIOutput('risk_score', score) }));
     setAiError(null);
   }
 
   function getMilestoneStatus(milestone: Milestone): MilestoneStatus {
-    return DRBE.evaluateMilestoneStatus(milestone);
+    return OpportunityService.evaluateMilestoneStatus(milestone);
   }
 
   return (
@@ -76,7 +175,7 @@ const InvestorOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {mockOpportunities.map((opp) => (
+            {opportunities.map((opp) => (
               <div key={opp.id} className="p-4 border rounded-lg mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium">{opp.title}</h4>
@@ -127,44 +226,6 @@ const InvestorOverview = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
-
-const InvestorDashboard = () => {
-  // Mock user data - in real app this would come from auth context
-  const mockUserId = "inv-001";
-  const mockEntityId = "inv-001";
-  const mockEntityName = "Investment Portfolio";
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <InvestorSidebar />
-        <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-6 bg-gray-50">
-            <Routes>
-              <Route index element={<InvestorOverview />} />
-              <Route path="documents" element={<InvestorDocumentWorkspace />} />
-              <Route 
-                path="observers" 
-                element={
-                  <ObserverManagement
-                    userId={mockUserId}
-                    entityId={mockEntityId}
-                    entityType="investment"
-                    entityName={mockEntityName}
-                  />
-                } 
-              />
-              <Route path="portfolio" element={<div>Portfolio Management</div>} />
-              <Route path="due-diligence" element={<div>Due Diligence</div>} />
-              <Route path="reports" element={<div>Investment Reports</div>} />
-              <Route path="profile" element={<div>Profile Management</div>} />
-            </Routes>
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
   );
 };
 

@@ -152,6 +152,24 @@ const Index = () => {
               Get Started
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
+
+            <div className="mt-4 flex gap-4 justify-center">
+              <Button 
+                onClick={() => navigate('/login')} 
+                variant="outline"
+                size="lg"
+                className="px-6 py-3"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={() => navigate('/signup')} 
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+              >
+                Sign Up
+              </Button>
+            </div>
           </div>
         </div>
       </div>

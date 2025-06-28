@@ -34,19 +34,17 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { 
-  InvestmentPool, 
-  PoolMember, 
-  PoolInvestment, 
+import {
+  InvestmentPool,
+  PoolMember,
+  PoolInvestment,
   PoolVote,
   createInvestmentPool,
-  getInvestmentPool,
   getPoolsByUser,
   getPoolsWhereMember,
-  addPoolMember,
+  getInvestmentPool,
   getPoolMembers,
-  updateMemberCommitment,
-  proposeInvestment,
+  addPoolMember,
   getPoolInvestments,
   voteOnInvestment,
   getInvestmentVotes,
@@ -54,10 +52,11 @@ import {
   getPoolStats,
   activatePool,
   closePool,
-  poolManager
+  proposeInvestment
 } from '@/lib/pools';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PoolManagementProps {
   userId: string;
@@ -185,53 +184,31 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
         toast.error("Pool description is required");
         return;
       }
-      if (!createForm.targetAmount || createForm.targetAmount <= 0) {
+      if (!createForm.targetAmount || parseFloat(createForm.targetAmount) <= 0) {
         toast.error("Target amount must be positive");
         return;
       }
 
-      // Handle logo upload
-      let logoUrl = '';
-      if (logoFile) {
-        // In a real app, you would upload to cloud storage here
-        logoUrl = URL.createObjectURL(logoFile);
-        toast.info("Logo uploaded successfully");
-      }
-
-      const pool: Omit<InvestmentPool, 'id' | 'created_at' | 'updated_at'> = {
+      const createdPool = await createInvestmentPool({
         name: createForm.name,
         description: createForm.description,
-        logo_url: logoUrl,
-        investment_focus: createForm.investment_focus,
-        minimum_investment: createForm.minimum_investment,
-        target_amount: createForm.target_amount,
-        current_amount: 0,
-        management_fee: createForm.management_fee,
-        carried_interest: createForm.carried_interest,
-        is_active: createForm.is_active,
-        is_public: createForm.is_public,
-        created_by: userId,
-        managerId: userId,
         type: createForm.type,
-        risk_profile: createForm.riskProfile,
+        targetAmount: parseFloat(createForm.targetAmount),
+        minimumInvestment: parseFloat(createForm.minimumInvestment),
+        maximumInvestment: parseFloat(createForm.maximumInvestment),
+        currency: createForm.currency,
+        createdBy: userId,
+        managerId: userId,
+        investmentStrategy: createForm.investmentStrategy,
+        riskProfile: createForm.riskProfile,
         termLength: parseInt(createForm.termLength),
-        managementFee: createForm.managementFee,
-        performanceFee: createForm.performanceFee,
+        managementFee: parseFloat(createForm.managementFee),
+        performanceFee: parseFloat(createForm.performanceFee),
         autoApprove: createForm.autoApprove,
         requireVote: createForm.requireVote,
-        maxMembers: parseInt(createForm.maxMembers),
-        current_members: 0,
-        max_members: parseInt(createForm.maxMembers),
-        total_committed: 0,
-        total_invested: 0,
-        total_distributed: 0,
-        voting_threshold: 75,
-        status: 'forming',
-        members: [],
-        voting_power: 0
-      };
+        maxMembers: parseInt(createForm.maxMembers)
+      });
 
-      const createdPool = poolManager.createPool(pool);
       setPools([createdPool, ...pools]);
       setShowCreateDialog(false);
       setCreateForm({
@@ -362,20 +339,19 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     if (!editingPool) return;
 
     try {
-      // Handle logo upload
-      let logoUrl = editingPool.logo_url;
-      if (logoFile) {
-        logoUrl = URL.createObjectURL(logoFile);
-        toast.info("Logo updated successfully");
-      }
+      // Update the pool in the database
+      const { error } = await supabase
+        .from('investment_pools')
+        .update({
+          name: editingPool.name,
+          description: editingPool.description,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingPool.id);
 
-      const updatedPool = {
-        ...editingPool,
-        logo_url: logoUrl
-      };
+      if (error) throw error;
 
-      poolManager.updatePool(editingPool.id, updatedPool);
-      setPools(poolManager.getPools());
+      setPools(pools.map((pool) => pool.id === editingPool.id ? editingPool : pool));
       setIsEditingPool(false);
       setEditingPool(null);
       setLogoFile(null);

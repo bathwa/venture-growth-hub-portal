@@ -1,5 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -7,14 +8,36 @@ interface User {
   name: string;
   role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider';
   avatar?: string;
+  phone?: string;
+  bio?: string;
+  company?: string;
+  position?: string;
+  location?: string;
+  website?: string;
+  linkedin?: string;
+  twitter?: string;
+  kyc_status?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+interface SignupData {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider';
+  phone?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
+  signup: (data: SignupData) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateProfile: (profileData: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,56 +45,198 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user data on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      setIsAuthenticated(true);
-    }
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserProfile(session.user);
+      }
+      setIsLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // Mock login - in real implementation, this would call your backend
-    console.log('Login attempt:', email, password);
-    
-    // Mock user data based on email
-    let mockUser: User;
-    if (email.includes('admin')) {
-      mockUser = { id: '1', email, name: 'Admin User', role: 'admin' };
-    } else if (email.includes('entrepreneur')) {
-      mockUser = { id: '2', email, name: 'Entrepreneur User', role: 'entrepreneur' };
-    } else if (email.includes('investor')) {
-      mockUser = { id: '3', email, name: 'Investor User', role: 'investor' };
-    } else if (email.includes('service')) {
-      mockUser = { id: '4', email, name: 'Service Provider', role: 'service_provider' };
-    } else {
-      mockUser = { id: '5', email, name: 'Pool Member', role: 'pool' };
+  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading user profile:', error);
+        return;
+      }
+
+      if (profile) {
+        const userData: User = {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role,
+          avatar: profile.avatar,
+          phone: profile.phone,
+          bio: profile.bio,
+          company: profile.company,
+          position: profile.position,
+          location: profile.location,
+          website: profile.website,
+          linkedin: profile.linkedin,
+          twitter: profile.twitter,
+          kyc_status: profile.kyc_status,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at
+        };
+
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
-    
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(mockUser));
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        await loadUserProfile(data.user);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
+  const signup = async (data: SignupData) => {
+    try {
+      // Validate admin key if admin email
+      const isAdminEmail = data.email === "abathwabiz@gmail.com" || data.email === "admin@abathwa.com";
+      if (isAdminEmail && data.role !== 'admin') {
+        throw new Error('Admin emails require admin role');
+      }
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (authData.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: data.email,
+            name: data.name,
+            role: data.role,
+            phone: data.phone,
+            kyc_status: 'not_submitted',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Delete auth user if profile creation fails
+          await supabase.auth.admin.deleteUser(authData.user.id);
+          throw new Error('Failed to create user profile');
+        }
+
+        await loadUserProfile(authData.user);
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  };
+
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          ...userData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
     }
+  };
+
+  const updateProfile = async (profileData: Partial<User>) => {
+    return updateUser(profileData);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      isLoading,
+      login, 
+      signup, 
+      logout, 
+      updateUser,
+      updateProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );
