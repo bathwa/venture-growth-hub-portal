@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,13 +25,19 @@ import {
   Lock,
   Clock,
   Target,
-  Lightbulb
+  Lightbulb,
+  Sun,
+  Moon,
+  Menu,
+  X
 } from "lucide-react";
+import { useTheme } from 'next-themes';
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { canInstall, installPWA, isOnline } = usePWA();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -110,6 +116,14 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
+              <Button 
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
+                variant="ghost"
+                size="sm"
+                className="text-gray-700 hover:text-indigo-600"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Button 
                 onClick={() => navigate('/login')} 
                 variant="ghost"

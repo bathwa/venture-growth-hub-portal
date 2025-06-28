@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { ThemeProvider } from 'next-themes';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { PWAProvider } from '@/contexts/PWAContext';
 
@@ -17,6 +18,10 @@ import InvestorDashboard from '@/pages/investor/InvestorDashboard';
 import PoolDashboard from '@/pages/pool/PoolDashboard';
 import ServiceProviderDashboard from '@/pages/service-provider/ServiceProviderDashboard';
 import ObserverDashboard from '@/pages/observer/ObserverDashboard';
+
+// Entrepreneur Pages
+import CreateOpportunity from '@/pages/entrepreneur/opportunities/create';
+import OpportunitiesList from '@/pages/entrepreneur/opportunities/index';
 
 // Components
 import LoadingSpinner from '@/components/ui/loading-spinner';
@@ -123,6 +128,10 @@ function AppRoutes() {
       <Route path="/service-provider" element={<DashboardRoute role="service_provider" component={ServiceProviderDashboard} />} />
       <Route path="/observer" element={<DashboardRoute role="observer" component={ObserverDashboard} />} />
 
+      {/* Entrepreneur Pages */}
+      <Route path="/entrepreneur/opportunities/create" element={<DashboardRoute role="entrepreneur" component={CreateOpportunity} />} />
+      <Route path="/entrepreneur/opportunities" element={<DashboardRoute role="entrepreneur" component={OpportunitiesList} />} />
+
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -134,20 +143,22 @@ function App() {
     <Router>
       <AuthProvider>
         <PWAProvider>
-          <div className="min-h-screen bg-gray-50">
-            <AppRoutes />
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#fff',
-                  color: '#374151',
-                  border: '1px solid #e5e7eb',
-                },
-              }}
-            />
-          </div>
+          <ThemeProvider>
+            <div className="min-h-screen bg-gray-50">
+              <AppRoutes />
+              <Toaster 
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#fff',
+                    color: '#374151',
+                    border: '1px solid #e5e7eb',
+                  },
+                }}
+              />
+            </div>
+          </ThemeProvider>
         </PWAProvider>
       </AuthProvider>
     </Router>
