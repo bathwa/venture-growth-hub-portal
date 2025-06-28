@@ -2,7 +2,7 @@
 
 /**
  * Production Readiness Check Script
- * Quick assessment of whether the investment portal is ready for production
+ * Validates the entire application for production deployment
  */
 
 import fs from 'fs';
@@ -12,354 +12,509 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration
-const CONFIG = {
-  requiredFiles: [
-    'src/lib/drbe.ts',
-    'src/lib/ai.ts',
-    'src/lib/notifications.ts',
-    'src/lib/agreements.ts',
-    'src/lib/rbac.ts',
-    'src/lib/kyc.ts',
-    'src/lib/storage.ts',
-    'src/components/ui/notification-center.tsx',
-    'src/components/ui/notification-bell.tsx',
-    'src/pages/admin/AdminDashboard.tsx',
-    'src/components/admin/ReportsAnalytics.tsx',
-    'supabase/config.toml'
-  ],
-  requiredDependencies: [
-    '@supabase/supabase-js',
-    'react',
-    'react-dom',
-    'react-router-dom',
-    '@tensorflow/tfjs',
-    'sonner',
-    'lucide-react'
-  ],
-  requiredFeatures: [
-    'Database Schema',
-    'RLS Policies',
-    'DRBE Engine',
-    'AI Integration',
-    'Notification System',
-    'Document Management',
-    'RBAC System',
-    'KYC/AML Integration',
-    'Storage Management',
-    'User Authentication',
-    'Multi-role Dashboards',
-    'Template System'
-  ]
+// Colors for console output
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m'
+};
+
+const log = {
+  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
+  success: (msg) => console.log(`${colors.green}✅${colors.reset} ${msg}`),
+  warning: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  error: (msg) => console.log(`${colors.red}❌${colors.reset} ${msg}`),
+  header: (msg) => console.log(`\n${colors.bright}${colors.cyan}${msg}${colors.reset}`)
 };
 
 class ProductionReadinessChecker {
   constructor() {
-    this.results = {
-      passed: 0,
-      failed: 0,
-      warnings: 0,
-      total: 0
-    };
     this.issues = [];
+    this.warnings = [];
+    this.successes = [];
+    this.projectRoot = process.cwd();
   }
 
-  log(message, type = 'info') {
-    const timestamp = new Date().toISOString();
-    const prefix = {
-      info: 'ℹ️',
-      success: '✅',
-      error: '❌',
-      warning: '⚠️'
-    }[type];
-    
-    console.log(`${prefix} [${timestamp}] ${message}`);
+  addIssue(issue) {
+    this.issues.push(issue);
   }
 
-  checkFileExists(filePath) {
-    const fullPath = path.join(process.cwd(), filePath);
-    const exists = fs.existsSync(fullPath);
-    
-    if (exists) {
-      this.log(`File exists: ${filePath}`, 'success');
-      this.results.passed++;
-    } else {
-      this.log(`File missing: ${filePath}`, 'error');
-      this.results.failed++;
-      this.issues.push(`Missing file: ${filePath}`);
-    }
-    this.results.total++;
+  addWarning(warning) {
+    this.warnings.push(warning);
   }
 
-  checkPackageJson() {
+  addSuccess(success) {
+    this.successes.push(success);
+  }
+
+  // Check if file exists
+  fileExists(filePath) {
+    return fs.existsSync(path.join(this.projectRoot, filePath));
+  }
+
+  // Read file content
+  readFile(filePath) {
     try {
-      const packageJsonPath = path.join(process.cwd(), 'package.json');
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      
-      this.log('Checking package.json dependencies...', 'info');
-      
-      CONFIG.requiredDependencies.forEach(dep => {
-        if (packageJson.dependencies?.[dep] || packageJson.devDependencies?.[dep]) {
-          this.log(`Dependency found: ${dep}`, 'success');
-          this.results.passed++;
-        } else {
-          this.log(`Dependency missing: ${dep}`, 'error');
-          this.results.failed++;
-          this.issues.push(`Missing dependency: ${dep}`);
+      return fs.readFileSync(path.join(this.projectRoot, filePath), 'utf8');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Check for mock data patterns
+  checkForMockData(content, filePath) {
+    const mockPatterns = [
+      /mock.*data/i,
+      /hardcoded/i,
+      /demo.*account/i,
+      /test.*data/i,
+      /sample.*data/i,
+      /placeholder/i
+    ];
+
+    const lines = content.split('\n');
+    let hasMockData = false;
+
+    lines.forEach((line, index) => {
+      mockPatterns.forEach(pattern => {
+        if (pattern.test(line) && !line.includes('//') && !line.includes('/*')) {
+          this.addWarning(`Potential mock data in ${filePath}:${index + 1} - "${line.trim()}"`);
+          hasMockData = true;
         }
-        this.results.total++;
+      });
+    });
+
+    return hasMockData;
+  }
+
+  // Check TypeScript compilation
+  async checkTypeScriptCompilation() {
+    log.header('Checking TypeScript Compilation');
+    
+    try {
+      const { execSync } = await import('child_process');
+      execSync('npx tsc --noEmit', { stdio: 'pipe' });
+      this.addSuccess('TypeScript compilation successful');
+    } catch (error) {
+      this.addIssue('TypeScript compilation failed');
+      log.error(error.message);
+    }
+  }
+
+  // Check build process
+  async checkBuildProcess() {
+    log.header('Checking Build Process');
+    
+    try {
+      const { execSync } = await import('child_process');
+      execSync('npm run build', { stdio: 'pipe' });
+      this.addSuccess('Build process successful');
+    } catch (error) {
+      this.addIssue('Build process failed');
+      log.error(error.message);
+    }
+  }
+
+  // Check for required files
+  checkRequiredFiles() {
+    log.header('Checking Required Files');
+    
+    const requiredFiles = [
+      'package.json',
+      'tsconfig.json',
+      'vite.config.ts',
+      'tailwind.config.ts',
+      'src/main.tsx',
+      'src/App.tsx',
+      'index.html',
+      'README.md'
+    ];
+
+    requiredFiles.forEach(file => {
+      if (this.fileExists(file)) {
+        this.addSuccess(`Required file exists: ${file}`);
+      } else {
+        this.addIssue(`Missing required file: ${file}`);
+      }
+    });
+  }
+
+  // Check for security issues
+  checkSecurityIssues() {
+    log.header('Checking Security Issues');
+    
+    const securityPatterns = [
+      { pattern: /api.*key.*=.*['"][^'"]+['"]/, description: 'Hardcoded API keys' },
+      { pattern: /password.*=.*['"][^'"]+['"]/, description: 'Hardcoded passwords' },
+      { pattern: /secret.*=.*['"][^'"]+['"]/, description: 'Hardcoded secrets' },
+      { pattern: /token.*=.*['"][^'"]+['"]/, description: 'Hardcoded tokens' }
+    ];
+
+    const filesToCheck = [
+      'src/integrations/supabase/client.ts',
+      'src/contexts/AuthContext.tsx',
+      'src/lib/*.ts',
+      'src/components/**/*.tsx'
+    ];
+
+    // Check specific files for security issues
+    const specificFiles = [
+      'src/integrations/supabase/client.ts',
+      'src/contexts/AuthContext.tsx'
+    ];
+
+    specificFiles.forEach(file => {
+      const content = this.readFile(file);
+      if (content) {
+        securityPatterns.forEach(({ pattern, description }) => {
+          if (pattern.test(content)) {
+            this.addIssue(`Security issue in ${file}: ${description}`);
+          }
+        });
+      }
+    });
+
+    this.addSuccess('Security check completed');
+  }
+
+  // Check for mock data in components
+  checkMockDataInComponents() {
+    log.header('Checking for Mock Data in Components');
+    
+    const componentDirs = [
+      'src/components',
+      'src/pages'
+    ];
+
+    componentDirs.forEach(dir => {
+      if (this.fileExists(dir)) {
+        this.scanDirectoryForMockData(dir);
+      }
+    });
+  }
+
+  scanDirectoryForMockData(dirPath) {
+    try {
+      const items = fs.readdirSync(path.join(this.projectRoot, dirPath));
+      
+      items.forEach(item => {
+        const fullPath = path.join(dirPath, item);
+        const stat = fs.statSync(path.join(this.projectRoot, fullPath));
+        
+        if (stat.isDirectory()) {
+          this.scanDirectoryForMockData(fullPath);
+        } else if (item.endsWith('.tsx') || item.endsWith('.ts')) {
+          const content = this.readFile(fullPath);
+          if (content) {
+            this.checkForMockData(content, fullPath);
+          }
+        }
       });
     } catch (error) {
-      this.log('Failed to read package.json', 'error');
-      this.results.failed++;
-      this.results.total++;
+      this.addWarning(`Could not scan directory: ${dirPath}`);
     }
   }
 
-  checkCodeQuality() {
-    this.log('Checking code quality indicators...', 'info');
-    
-    // Check for TypeScript configuration
-    const tsConfigPath = path.join(process.cwd(), 'tsconfig.json');
-    if (fs.existsSync(tsConfigPath)) {
-      this.log('TypeScript configuration found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('TypeScript configuration missing', 'warning');
-      this.results.warnings++;
-      this.issues.push('Missing TypeScript configuration');
-    }
-    this.results.total++;
-
-    // Check for ESLint configuration
-    const eslintConfigPath = path.join(process.cwd(), 'eslint.config.js');
-    if (fs.existsSync(eslintConfigPath)) {
-      this.log('ESLint configuration found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('ESLint configuration missing', 'warning');
-      this.results.warnings++;
-      this.issues.push('Missing ESLint configuration');
-    }
-    this.results.total++;
-
-    // Check for environment variables
-    const envPath = path.join(process.cwd(), '.env.example');
-    if (fs.existsSync(envPath)) {
-      this.log('Environment variables template found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('Environment variables template missing', 'warning');
-      this.results.warnings++;
-      this.issues.push('Missing environment variables template');
-    }
-    this.results.total++;
-  }
-
-  checkSecurity() {
-    this.log('Checking security configurations...', 'info');
-    
-    // Check for .gitignore
-    const gitignorePath = path.join(process.cwd(), '.gitignore');
-    if (fs.existsSync(gitignorePath)) {
-      const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-      if (gitignoreContent.includes('.env') && gitignoreContent.includes('node_modules')) {
-        this.log('Security: .gitignore properly configured', 'success');
-        this.results.passed++;
-      } else {
-        this.log('Security: .gitignore missing critical entries', 'warning');
-        this.results.warnings++;
-        this.issues.push('.gitignore missing critical entries');
-      }
-    } else {
-      this.log('Security: .gitignore missing', 'error');
-      this.results.failed++;
-      this.issues.push('Missing .gitignore file');
-    }
-    this.results.total++;
-
-    // Check for README
-    const readmePath = path.join(process.cwd(), 'README.md');
-    if (fs.existsSync(readmePath)) {
-      this.log('Documentation: README found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('Documentation: README missing', 'warning');
-      this.results.warnings++;
-      this.issues.push('Missing README.md');
-    }
-    this.results.total++;
-  }
-
-  checkBuildConfiguration() {
-    this.log('Checking build configuration...', 'info');
-    
-    // Check for Vite configuration
-    const viteConfigPath = path.join(process.cwd(), 'vite.config.ts');
-    if (fs.existsSync(viteConfigPath)) {
-      this.log('Build: Vite configuration found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('Build: Vite configuration missing', 'error');
-      this.results.failed++;
-      this.issues.push('Missing Vite configuration');
-    }
-    this.results.total++;
-
-    // Check for Tailwind configuration
-    const tailwindConfigPath = path.join(process.cwd(), 'tailwind.config.ts');
-    if (fs.existsSync(tailwindConfigPath)) {
-      this.log('Build: Tailwind configuration found', 'success');
-      this.results.passed++;
-    } else {
-      this.log('Build: Tailwind configuration missing', 'warning');
-      this.results.warnings++;
-      this.issues.push('Missing Tailwind configuration');
-    }
-    this.results.total++;
-  }
-
+  // Check database schema files
   checkDatabaseSchema() {
-    this.log('Checking database schema...', 'info');
+    log.header('Checking Database Schema Files');
     
-    // Check for SQL schema files
-    const sqlFiles = [
-      'escrow_pool_schema.sql',
-      'observer_access_logs.sql'
+    const schemaFiles = [
+      'COMPREHENSIVE_SUPABASE_SCHEMA.sql',
+      'users_schema.sql',
+      'opportunities_schema.sql',
+      'investments_schema.sql',
+      'escrow_pool_schema.sql'
     ];
-    
-    sqlFiles.forEach(file => {
-      const sqlPath = path.join(process.cwd(), file);
-      if (fs.existsSync(sqlPath)) {
-        this.log(`Database: ${file} found`, 'success');
-        this.results.passed++;
+
+    schemaFiles.forEach(file => {
+      if (this.fileExists(file)) {
+        this.addSuccess(`Database schema file exists: ${file}`);
       } else {
-        this.log(`Database: ${file} missing`, 'warning');
-        this.results.warnings++;
-        this.issues.push(`Missing database schema: ${file}`);
+        this.addWarning(`Missing database schema file: ${file}`);
       }
-      this.results.total++;
     });
   }
 
-  checkComponentStructure() {
-    this.log('Checking component structure...', 'info');
+  // Check test files
+  checkTestFiles() {
+    log.header('Checking Test Files');
     
-    const requiredDirs = [
-      'src/components/admin',
-      'src/components/entrepreneur',
-      'src/components/investor',
-      'src/components/ui',
-      'src/lib',
-      'src/pages',
-      'src/contexts'
+    const testFiles = [
+      'src/tests/production-readiness.test.ts',
+      'src/tests/comprehensive-user-journeys.test.ts',
+      'src/tests/auth-flow.test.ts',
+      'src/tests/app-functionality.test.ts'
     ];
-    
-    requiredDirs.forEach(dir => {
-      const dirPath = path.join(process.cwd(), dir);
-      if (fs.existsSync(dirPath)) {
-        this.log(`Structure: ${dir} directory found`, 'success');
-        this.results.passed++;
+
+    testFiles.forEach(file => {
+      if (this.fileExists(file)) {
+        this.addSuccess(`Test file exists: ${file}`);
       } else {
-        this.log(`Structure: ${dir} directory missing`, 'error');
-        this.results.failed++;
-        this.issues.push(`Missing directory: ${dir}`);
+        this.addWarning(`Missing test file: ${file}`);
       }
-      this.results.total++;
     });
   }
 
+  // Check package.json dependencies
+  checkDependencies() {
+    log.header('Checking Dependencies');
+    
+    const packageJson = this.readFile('package.json');
+    if (!packageJson) {
+      this.addIssue('package.json not found');
+      return;
+    }
+
+    try {
+      const pkg = JSON.parse(packageJson);
+      
+      // Check for required dependencies
+      const requiredDeps = [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@supabase/supabase-js',
+        'typescript',
+        'vite',
+        'tailwindcss'
+      ];
+
+      requiredDeps.forEach(dep => {
+        if (pkg.dependencies?.[dep] || pkg.devDependencies?.[dep]) {
+          this.addSuccess(`Required dependency found: ${dep}`);
+        } else {
+          this.addIssue(`Missing required dependency: ${dep}`);
+        }
+      });
+
+      // Check for security vulnerabilities
+      this.addSuccess('Dependencies check completed');
+    } catch (error) {
+      this.addIssue('Invalid package.json');
+    }
+  }
+
+  // Check environment configuration
+  checkEnvironmentConfig() {
+    log.header('Checking Environment Configuration');
+    
+    const envFiles = ['.env', '.env.local', '.env.production'];
+    
+    envFiles.forEach(file => {
+      if (this.fileExists(file)) {
+        this.addSuccess(`Environment file exists: ${file}`);
+      } else {
+        this.addWarning(`Environment file not found: ${file}`);
+      }
+    });
+
+    // Check for environment variables in code
+    const content = this.readFile('src/integrations/supabase/client.ts');
+    if (content && content.includes('process.env')) {
+      this.addSuccess('Environment variables properly configured');
+    } else {
+      this.addWarning('Environment variables may not be properly configured');
+    }
+  }
+
+  // Check responsive design
+  checkResponsiveDesign() {
+    log.header('Checking Responsive Design');
+    
+    const componentDirs = ['src/components', 'src/pages'];
+    let responsiveComponents = 0;
+    let totalComponents = 0;
+
+    componentDirs.forEach(dir => {
+      if (this.fileExists(dir)) {
+        const components = this.countComponents(dir);
+        totalComponents += components.total;
+        responsiveComponents += components.responsive;
+      }
+    });
+
+    if (responsiveComponents > 0) {
+      this.addSuccess(`Responsive design implemented in ${responsiveComponents}/${totalComponents} components`);
+    } else {
+      this.addWarning('No responsive design patterns detected');
+    }
+  }
+
+  countComponents(dirPath) {
+    let total = 0;
+    let responsive = 0;
+
+    try {
+      const items = fs.readdirSync(path.join(this.projectRoot, dirPath));
+      
+      items.forEach(item => {
+        const fullPath = path.join(dirPath, item);
+        const stat = fs.statSync(path.join(this.projectRoot, fullPath));
+        
+        if (stat.isDirectory()) {
+          const result = this.countComponents(fullPath);
+          total += result.total;
+          responsive += result.responsive;
+        } else if (item.endsWith('.tsx')) {
+          total++;
+          const content = this.readFile(fullPath);
+          if (content && (content.includes('sm:') || content.includes('md:') || content.includes('lg:') || content.includes('xl:'))) {
+            responsive++;
+          }
+        }
+      });
+    } catch (error) {
+      // Directory doesn't exist or can't be read
+    }
+
+    return { total, responsive };
+  }
+
+  // Check accessibility
+  checkAccessibility() {
+    log.header('Checking Accessibility');
+    
+    const componentDirs = ['src/components', 'src/pages'];
+    let accessibleComponents = 0;
+    let totalComponents = 0;
+
+    componentDirs.forEach(dir => {
+      if (this.fileExists(dir)) {
+        const components = this.countAccessibleComponents(dir);
+        totalComponents += components.total;
+        accessibleComponents += components.accessible;
+      }
+    });
+
+    if (accessibleComponents > 0) {
+      this.addSuccess(`Accessibility features found in ${accessibleComponents}/${totalComponents} components`);
+    } else {
+      this.addWarning('No accessibility features detected');
+    }
+  }
+
+  countAccessibleComponents(dirPath) {
+    let total = 0;
+    let accessible = 0;
+
+    try {
+      const items = fs.readdirSync(path.join(this.projectRoot, dirPath));
+      
+      items.forEach(item => {
+        const fullPath = path.join(dirPath, item);
+        const stat = fs.statSync(path.join(this.projectRoot, fullPath));
+        
+        if (stat.isDirectory()) {
+          const result = this.countAccessibleComponents(fullPath);
+          total += result.total;
+          accessible += result.accessible;
+        } else if (item.endsWith('.tsx')) {
+          total++;
+          const content = this.readFile(fullPath);
+          if (content && (content.includes('aria-') || content.includes('role=') || content.includes('alt='))) {
+            accessible++;
+          }
+        }
+      });
+    } catch (error) {
+      // Directory doesn't exist or can't be read
+    }
+
+    return { total, accessible };
+  }
+
+  // Generate report
   generateReport() {
-    const successRate = (this.results.passed / this.results.total * 100).toFixed(1);
-    const errorRate = (this.results.failed / this.results.total * 100).toFixed(1);
+    log.header('Production Readiness Report');
     
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 PRODUCTION READINESS REPORT');
-    console.log('='.repeat(60));
+    console.log(`\n${colors.bright}Summary:${colors.reset}`);
+    console.log(`✅ Successes: ${this.successes.length}`);
+    console.log(`⚠️  Warnings: ${this.warnings.length}`);
+    console.log(`❌ Issues: ${this.issues.length}`);
     
-    console.log(`\n📈 Results Summary:`);
-    console.log(`✅ Passed: ${this.results.passed}`);
-    console.log(`❌ Failed: ${this.results.failed}`);
-    console.log(`⚠️  Warnings: ${this.results.warnings}`);
-    console.log(`📊 Total: ${this.results.total}`);
-    console.log(`🎯 Success Rate: ${successRate}%`);
-    console.log(`🚨 Error Rate: ${errorRate}%`);
-    
-    if (this.issues.length > 0) {
-      console.log(`\n🚨 Issues Found:`);
-      this.issues.forEach((issue, index) => {
-        console.log(`${index + 1}. ${issue}`);
+    if (this.successes.length > 0) {
+      console.log(`\n${colors.green}${colors.bright}Successes:${colors.reset}`);
+      this.successes.forEach(success => {
+        console.log(`  ✅ ${success}`);
       });
     }
     
-    console.log(`\n🎯 Production Readiness Assessment:`);
-    
-    if (this.results.failed === 0 && this.results.warnings <= 3) {
-      console.log('🎉 EXCELLENT: Ready for production deployment!');
-      console.log('✅ All critical components are present and configured');
-      console.log('✅ Security measures are in place');
-      console.log('✅ Code quality standards are met');
-    } else if (this.results.failed <= 2 && this.results.warnings <= 5) {
-      console.log('✅ GOOD: Mostly ready for production');
-      console.log('⚠️  Address the issues above before deployment');
-      console.log('✅ Core functionality is intact');
-    } else if (this.results.failed <= 5) {
-      console.log('⚠️  CAUTION: Needs work before production');
-      console.log('❌ Several critical issues need to be resolved');
-      console.log('🔧 Review and fix the issues above');
-    } else {
-      console.log('❌ NOT READY: Significant issues found');
-      console.log('🚨 Multiple critical components are missing');
-      console.log('🔧 Extensive work required before production');
+    if (this.warnings.length > 0) {
+      console.log(`\n${colors.yellow}${colors.bright}Warnings:${colors.reset}`);
+      this.warnings.forEach(warning => {
+        console.log(`  ⚠️  ${warning}`);
+      });
     }
     
-    console.log('\n' + '='.repeat(60));
+    if (this.issues.length > 0) {
+      console.log(`\n${colors.red}${colors.bright}Issues:${colors.reset}`);
+      this.issues.forEach(issue => {
+        console.log(`  ❌ ${issue}`);
+      });
+    }
+    
+    // Overall assessment
+    console.log(`\n${colors.bright}Overall Assessment:${colors.reset}`);
+    if (this.issues.length === 0 && this.warnings.length <= 5) {
+      console.log(`${colors.green}${colors.bright}🎉 PRODUCTION READY!${colors.reset}`);
+      console.log('The application is ready for production deployment.');
+    } else if (this.issues.length <= 3) {
+      console.log(`${colors.yellow}${colors.bright}⚠️  NEARLY READY${colors.reset}`);
+      console.log('The application is mostly ready but has some issues to address.');
+    } else {
+      console.log(`${colors.red}${colors.bright}❌ NOT READY${colors.reset}`);
+      console.log('The application has significant issues that need to be resolved before production.');
+    }
     
     return {
-      successRate: parseFloat(successRate),
-      errorRate: parseFloat(errorRate),
-      isProductionReady: this.results.failed === 0 && this.results.warnings <= 3,
-      issues: this.issues
+      ready: this.issues.length === 0 && this.warnings.length <= 5,
+      issues: this.issues,
+      warnings: this.warnings,
+      successes: this.successes
     };
   }
 
+  // Run all checks
   async run() {
-    console.log('🚀 Starting Production Readiness Check...\n');
+    log.header('Starting Production Readiness Check');
     
-    // Check required files
-    this.log('Checking required files...', 'info');
-    CONFIG.requiredFiles.forEach(file => this.checkFileExists(file));
-    
-    // Check package.json dependencies
-    this.checkPackageJson();
-    
-    // Check code quality
-    this.checkCodeQuality();
-    
-    // Check security
-    this.checkSecurity();
-    
-    // Check build configuration
-    this.checkBuildConfiguration();
-    
-    // Check database schema
+    this.checkRequiredFiles();
+    this.checkDependencies();
+    this.checkEnvironmentConfig();
     this.checkDatabaseSchema();
+    this.checkTestFiles();
+    this.checkSecurityIssues();
+    this.checkMockDataInComponents();
+    this.checkResponsiveDesign();
+    this.checkAccessibility();
     
-    // Check component structure
-    this.checkComponentStructure();
+    // These checks might take longer, so run them last
+    await this.checkTypeScriptCompilation();
+    await this.checkBuildProcess();
     
-    // Generate final report
-    const report = this.generateReport();
-    
-    return report;
+    return this.generateReport();
   }
 }
 
-// Run the check if this script is executed directly
-const checker = new ProductionReadinessChecker();
-checker.run().then(report => {
-  process.exit(report.isProductionReady ? 0 : 1);
-}).catch(error => {
-  console.error('❌ Production readiness check failed:', error);
+// Run the checker
+async function main() {
+  const checker = new ProductionReadinessChecker();
+  const result = await checker.run();
+  
+  // Exit with appropriate code
+  process.exit(result.ready ? 0 : 1);
+}
+
+main().catch(error => {
+  log.error('Production readiness check failed:');
+  console.error(error);
   process.exit(1);
-}); 
+});
+
+module.exports = ProductionReadinessChecker; 

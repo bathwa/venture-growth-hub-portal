@@ -34,22 +34,49 @@ import {
   X
 } from "lucide-react";
 
+interface Statistics {
+  platform: {
+    totalUsers: number;
+    totalOpportunities: number;
+    totalInvestments: number;
+    totalFunding: number;
+    activeUsers: number;
+    successRate: number;
+  };
+  users: {
+    entrepreneurs: number;
+    investors: number;
+    serviceProviders: number;
+    poolManagers: number;
+    observers: number;
+    admins: number;
+  };
+  opportunities: {
+    total: number;
+    published: number;
+    funded: number;
+    pending: number;
+    draft: number;
+    averageFundingGoal: number;
+    averageEquityOffered: number;
+  };
+  investments: {
+    total: number;
+    totalAmount: number;
+    averageInvestment: number;
+    pending: number;
+    completed: number;
+    failed: number;
+  };
+}
+
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { canInstall, installPWA, isOnline } = usePWA();
   const { theme, setTheme } = useTheme();
-  const [statistics, setStatistics] = useState<PlatformStatistics>({
-    totalInvestments: 0,
-    totalOpportunities: 0,
-    totalUsers: 0,
-    uptime: 99.9,
-    totalFundingSought: 0,
-    totalFundingRaised: 0,
-    activeOpportunities: 0,
-    verifiedUsers: 0
-  });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -75,20 +102,55 @@ const Index = () => {
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
-    loadStatistics();
-  }, []);
+    const fetchStatistics = async () => {
+      try {
+        const stats = await StatisticsService.getAllStatistics();
+        setStatistics(stats);
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+        // Set default values if statistics fail to load
+        setStatistics({
+          platform: {
+            totalUsers: 0,
+            totalOpportunities: 0,
+            totalInvestments: 0,
+            totalFunding: 0,
+            activeUsers: 0,
+            successRate: 0
+          },
+          users: {
+            entrepreneurs: 0,
+            investors: 0,
+            serviceProviders: 0,
+            poolManagers: 0,
+            observers: 0,
+            admins: 0
+          },
+          opportunities: {
+            total: 0,
+            published: 0,
+            funded: 0,
+            pending: 0,
+            draft: 0,
+            averageFundingGoal: 0,
+            averageEquityOffered: 0
+          },
+          investments: {
+            total: 0,
+            totalAmount: 0,
+            averageInvestment: 0,
+            pending: 0,
+            completed: 0,
+            failed: 0
+          }
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadStatistics = async () => {
-    try {
-      setIsLoadingStats(true);
-      const stats = await StatisticsService.getPlatformStatistics();
-      setStatistics(stats);
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
+    fetchStatistics();
+  }, []);
 
   const handleInstallApp = () => {
     installPWA();
@@ -129,8 +191,26 @@ const Index = () => {
     return null; // Will redirect above
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Navigation Header */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -180,10 +260,7 @@ const Index = () => {
               <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-indigo-100 text-indigo-800 text-xs sm:text-sm font-medium mb-4 sm:mb-6">
                 <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 <span className="hidden sm:inline">
-                  Trusted by {isLoadingStats ? '...' : statistics.totalUsers} entrepreneurs and investors
-                </span>
-                <span className="sm:hidden">
-                  Trusted by {isLoadingStats ? '...' : statistics.totalUsers} users
+                  Trusted by {loading ? '...' : formatNumber(statistics?.platform.totalUsers || 0)} users
                 </span>
               </div>
             </div>
@@ -239,43 +316,43 @@ const Index = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto px-4">
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-indigo-600">
-                  {isLoadingStats ? (
+                  {loading ? (
                     <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
                   ) : (
-                    `$${(statistics.totalFundingRaised / 1000000).toFixed(1)}M`
+                    formatCurrency(statistics?.platform.totalFunding || 0)
                   )}
                 </div>
                 <div className="text-gray-600 text-sm sm:text-base">Total Investments</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-purple-600">
-                  {isLoadingStats ? (
+                  {loading ? (
                     <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
                   ) : (
-                    statistics.totalOpportunities
+                    formatNumber(statistics?.platform.totalOpportunities || 0)
                   )}
                 </div>
                 <div className="text-gray-600 text-sm sm:text-base">Opportunities</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                  {isLoadingStats ? (
+                  {loading ? (
                     <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
                   ) : (
-                    statistics.totalUsers
+                    formatNumber(statistics?.platform.totalUsers || 0)
                   )}
                 </div>
                 <div className="text-gray-600 text-sm sm:text-base">Active Users</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                  {isLoadingStats ? (
+                  {loading ? (
                     <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
                   ) : (
-                    `${statistics.uptime}%`
+                    `${(statistics?.platform.successRate || 0).toFixed(1)}%`
                   )}
                 </div>
-                <div className="text-gray-600 text-sm sm:text-base">Uptime</div>
+                <div className="text-gray-600 text-sm sm:text-base">Success Rate</div>
               </div>
             </div>
           </div>
