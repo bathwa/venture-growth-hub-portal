@@ -21,25 +21,13 @@ const Login = () => {
     try {
       await login(email, password);
       toast.success("Login successful!");
-      navigate("/");
+      // Don't navigate here - let the App.tsx routing handle it
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const demoLogins = [
-    { email: "admin@portal.com", password: "admin123", role: "Administrator" },
-    { email: "entrepreneur@portal.com", password: "entrepreneur123", role: "Entrepreneur" },
-    { email: "investor@portal.com", password: "investor123", role: "Investor" },
-    { email: "service@portal.com", password: "service123", role: "Service Provider" },
-  ];
-
-  const handleDemoLogin = (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
   };
 
   if (authLoading) {
@@ -93,26 +81,6 @@ const Login = () => {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="mt-6">
-              <div className="text-center text-sm text-gray-600 mb-3">
-                Demo Accounts (Click to use):
-              </div>
-              <div className="space-y-2">
-                {demoLogins.map((demo, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => handleDemoLogin(demo.email, demo.password)}
-                    disabled={isLoading}
-                  >
-                    {demo.role}: {demo.email}
-                  </Button>
-                ))}
-              </div>
-            </div>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">

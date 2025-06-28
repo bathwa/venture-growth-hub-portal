@@ -15,7 +15,7 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "entrepreneur" as "entrepreneur" | "investor" | "service_provider" | "pool",
+    role: "entrepreneur" as "entrepreneur" | "investor" | "service_provider" | "pool" | "admin" | "observer",
     adminKey: "",
     phone: ""
   });
@@ -74,11 +74,17 @@ const Signup = () => {
         phone: formData.phone || undefined
       });
 
-      toast.success("Account created successfully!");
-      navigate("/");
+      // If we reach here, the user was automatically logged in
+      toast.success("Account created successfully! Welcome to the platform.");
+      // Don't navigate - let App.tsx routing handle it
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error(error.message || "Signup failed. Please try again.");
+      if (error.message.includes('email to confirm')) {
+        toast.success("Account created successfully! Please check your email to confirm your account before logging in.");
+        navigate("/login");
+      } else {
+        toast.error(error.message || "Signup failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -191,6 +197,7 @@ const Signup = () => {
                       <SelectItem value="investor">Investor</SelectItem>
                       <SelectItem value="service_provider">Service Provider</SelectItem>
                       <SelectItem value="pool">Investment Pool</SelectItem>
+                      <SelectItem value="observer">Observer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

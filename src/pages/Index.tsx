@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePWA } from "@/contexts/PWAContext";
 import { toast } from "sonner";
+import { StatisticsService, PlatformStatistics } from "@/lib/statistics";
+import { useTheme } from 'next-themes';
 import { 
   Plus, 
   Search, 
@@ -31,13 +33,23 @@ import {
   Menu,
   X
 } from "lucide-react";
-import { useTheme } from 'next-themes';
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { canInstall, installPWA, isOnline } = usePWA();
   const { theme, setTheme } = useTheme();
+  const [statistics, setStatistics] = useState<PlatformStatistics>({
+    totalInvestments: 0,
+    totalOpportunities: 0,
+    totalUsers: 0,
+    uptime: 99.9,
+    totalFundingSought: 0,
+    totalFundingRaised: 0,
+    activeOpportunities: 0,
+    verifiedUsers: 0
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -61,6 +73,22 @@ const Index = () => {
       }
     }
   }, [isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    loadStatistics();
+  }, []);
+
+  const loadStatistics = async () => {
+    try {
+      setIsLoadingStats(true);
+      const stats = await StatisticsService.getPlatformStatistics();
+      setStatistics(stats);
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const handleInstallApp = () => {
     installPWA();
@@ -151,8 +179,12 @@ const Index = () => {
             <div className="mb-6 sm:mb-8">
               <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-indigo-100 text-indigo-800 text-xs sm:text-sm font-medium mb-4 sm:mb-6">
                 <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="hidden sm:inline">Trusted by 1000+ entrepreneurs and investors</span>
-                <span className="sm:hidden">Trusted by 1000+ users</span>
+                <span className="hidden sm:inline">
+                  Trusted by {isLoadingStats ? '...' : statistics.totalUsers} entrepreneurs and investors
+                </span>
+                <span className="sm:hidden">
+                  Trusted by {isLoadingStats ? '...' : statistics.totalUsers} users
+                </span>
               </div>
             </div>
             
@@ -206,19 +238,43 @@ const Index = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto px-4">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-indigo-600">$50M+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-indigo-600">
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
+                  ) : (
+                    `$${(statistics.totalFundingRaised / 1000000).toFixed(1)}M`
+                  )}
+                </div>
                 <div className="text-gray-600 text-sm sm:text-base">Total Investments</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600">500+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
+                  ) : (
+                    statistics.totalOpportunities
+                  )}
+                </div>
                 <div className="text-gray-600 text-sm sm:text-base">Opportunities</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">1000+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
+                  ) : (
+                    statistics.totalUsers
+                  )}
+                </div>
                 <div className="text-gray-600 text-sm sm:text-base">Active Users</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">99.9%</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+                  {isLoadingStats ? (
+                    <div className="animate-pulse bg-gray-200 h-8 rounded"></div>
+                  ) : (
+                    `${statistics.uptime}%`
+                  )}
+                </div>
                 <div className="text-gray-600 text-sm sm:text-base">Uptime</div>
               </div>
             </div>

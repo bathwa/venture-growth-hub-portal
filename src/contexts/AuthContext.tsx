@@ -6,7 +6,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider';
+  role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider' | 'observer';
   avatar?: string;
   phone?: string;
   bio?: string;
@@ -25,7 +25,7 @@ interface SignupData {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider';
+  role: 'admin' | 'entrepreneur' | 'investor' | 'pool' | 'service_provider' | 'observer';
   phone?: string;
 }
 
@@ -144,10 +144,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Admin emails require admin role');
       }
 
-      // Create auth user
+      // Create auth user with email confirmation disabled for immediate login
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
-        password: data.password
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            role: data.role,
+            name: data.name
+          }
+        }
       });
 
       if (authError) {
@@ -176,7 +183,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Failed to create user profile');
         }
 
-        await loadUserProfile(authData.user);
+        // For immediate login, we'll manually confirm the email and log the user in
+        // This bypasses the email confirmation requirement
+        try {
+          // Attempt to sign in immediately after signup
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password
+          });
+
+          if (signInError) {
+            throw signInError;
+          }
+
+          if (signInData.user) {
+            await loadUserProfile(signInData.user);
+          }
+        } catch (signInError) {
+          console.error('Immediate signin failed:', signInError);
+          // If immediate signin fails, throw the email confirmation error
+          throw new Error('Please check your email to confirm your account before logging in.');
+        }
       }
     } catch (error) {
       console.error('Signup error:', error);

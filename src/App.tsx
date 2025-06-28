@@ -58,6 +58,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
         return <Navigate to="/pool" replace />;
       case 'service_provider':
         return <Navigate to="/service-provider" replace />;
+      case 'observer':
+        return <Navigate to="/observer" replace />;
       default:
         return <Navigate to="/" replace />;
     }
@@ -98,6 +100,7 @@ function AppRoutes() {
            user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
            user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
            user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
            <Navigate to="/login" replace />) : 
           <Index />
       } />
@@ -107,6 +110,7 @@ function AppRoutes() {
            user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
            user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
            user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
            <Navigate to="/" replace />) : 
           <Login />
       } />
@@ -116,6 +120,7 @@ function AppRoutes() {
            user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
            user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
            user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
+           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
            <Navigate to="/" replace />) : 
           <Signup />
       } />
