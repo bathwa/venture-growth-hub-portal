@@ -50,11 +50,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadUserProfile(session.user);
+      console.log('🔍 Getting initial session...');
+      
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Session loading timeout, forcing isLoading to false');
+        setIsLoading(false);
+      }, 10000); // 10 second timeout
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        clearTimeout(timeoutId);
+        
+        if (session?.user) {
+          console.log('👤 Found existing session, loading user profile...');
+          await loadUserProfile(session.user);
+        } else {
+          console.log('❌ No existing session found');
+        }
+        console.log('✅ Setting isLoading to false');
+        setIsLoading(false);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('❌ Error getting initial session:', error);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getInitialSession();
@@ -62,12 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state changed:', event, session?.user?.email);
         if (session?.user) {
           await loadUserProfile(session.user);
         } else {
           setUser(null);
           setIsAuthenticated(false);
         }
+        console.log('✅ Setting isLoading to false after auth change');
         setIsLoading(false);
       }
     );
@@ -77,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log('📋 Loading user profile for:', supabaseUser.email);
       const { data: profile, error } = await supabase
         .from('users')
         .select('*')
@@ -84,11 +107,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error loading user profile:', error);
+        console.error('❌ Error loading user profile:', error);
+        
+        // Handle specific database errors
+        if (error.code === '42P01') {
+          console.error('❌ Users table does not exist. Please run the database setup scripts.');
+          // Create a basic user profile with default data
+          const basicUserData: User = {
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || 'User',
+            role: supabaseUser.user_metadata?.role || 'entrepreneur',
+            kyc_status: 'not_submitted',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          setUser(basicUserData);
+          setIsAuthenticated(true);
+          console.log('✅ Using basic user profile from auth metadata');
+        } else {
+          // For other errors, just set loading to false
+          setIsLoading(false);
+        }
         return;
       }
 
       if (profile) {
+        console.log('✅ User profile loaded successfully:', profile.role);
         const userData: User = {
           id: profile.id,
           email: profile.email,
@@ -110,9 +156,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(userData);
         setIsAuthenticated(true);
+        console.log('✅ User state updated, authenticated:', true);
+      } else {
+        console.log('⚠️ No profile found for user');
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('❌ Error loading user profile:', error);
+      // Set loading to false even when there's an error
+      setIsLoading(false);
     }
   };
 
