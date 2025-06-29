@@ -1,4 +1,3 @@
-
 /**
  * Production Readiness Test Suite
  * Comprehensive testing to determine if the investment portal is ready for production
@@ -6,7 +5,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { notificationManager } from '@/lib/notifications';
-import { DRBE } from '@/lib/drbe';
+import { DRBE, validateOpportunity, validatePayment } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { AgreementManager } from '@/lib/agreements';
 import { rbac } from '@/lib/rbac';
@@ -122,7 +121,7 @@ describe('Production Readiness Test Suite', () => {
     it('should validate opportunities correctly', async () => {
       totalTests++;
       try {
-        const validation = DRBE.validateOpportunity(MOCK_OPPORTUNITY);
+        const validation = validateOpportunity(MOCK_OPPORTUNITY);
         
         expect(validation.valid).toBeDefined();
         expect(validation.errors).toBeDefined();
@@ -145,7 +144,7 @@ describe('Production Readiness Test Suite', () => {
           reference_number: 'REF-123456'
         };
         
-        const validation = DRBE.validatePayment(payment);
+        const validation = validatePayment(payment);
         expect(validation.valid).toBeDefined();
         console.log('✅ Payment validation working');
       } catch (err) {
@@ -177,6 +176,7 @@ describe('Production Readiness Test Suite', () => {
     it('should create notifications', async () => {
       totalTests++;
       try {
+        // Fix function call to use single parameter
         const notification = await notificationManager.createNotification(
           MOCK_USER.id,
           'milestone-due',
@@ -330,6 +330,7 @@ describe('Production Readiness Test Suite', () => {
     it('should handle concurrent operations', async () => {
       totalTests++;
       try {
+        // Fix function call to use single parameter
         const concurrentOperations = Array.from({ length: 10 }, (_, i) => 
           notificationManager.createNotification(
             MOCK_USER.id,
@@ -382,7 +383,7 @@ describe('Production Readiness Test Suite', () => {
           }
         };
         
-        const validation = DRBE.validateOpportunity(maliciousInput);
+        const validation = validateOpportunity(maliciousInput);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
         console.log('✅ Input sanitization working');
@@ -399,14 +400,14 @@ describe('Production Readiness Test Suite', () => {
       totalTests++;
       try {
         // 1. Create opportunity
-        const opportunityValidation = DRBE.validateOpportunity(MOCK_OPPORTUNITY);
+        const opportunityValidation = validateOpportunity(MOCK_OPPORTUNITY);
         expect(opportunityValidation.valid).toBe(true);
         
         // 2. Create agreement manager
         const agreementManager = new AgreementManager();
         expect(agreementManager).toBeDefined();
         
-        // 3. Send notifications
+        // 3. Send notifications - fix function call to use single parameter
         const notification = await notificationManager.createNotification(
           MOCK_USER.id,
           'investment-received',
@@ -436,7 +437,7 @@ describe('Production Readiness Test Suite', () => {
           }
         };
         
-        const validation = DRBE.validateOpportunity(invalidOpportunity);
+        const validation = validateOpportunity(invalidOpportunity);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
         

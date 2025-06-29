@@ -1,3 +1,4 @@
+
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -30,20 +31,24 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-// Mock localStorage
-const localStorageMock = {
+// Mock localStorage with complete Storage interface
+const localStorageMock: Storage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
+  length: 0,
+  key: vi.fn()
 };
 global.localStorage = localStorageMock;
 
-// Mock sessionStorage
-const sessionStorageMock = {
+// Mock sessionStorage with complete Storage interface
+const sessionStorageMock: Storage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
+  length: 0,
+  key: vi.fn()
 };
-global.sessionStorage = sessionStorageMock; 
+global.sessionStorage = sessionStorageMock;

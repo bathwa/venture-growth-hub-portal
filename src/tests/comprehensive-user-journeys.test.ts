@@ -1,4 +1,3 @@
-
 /**
  * Comprehensive User Journey Test Suite
  * Tests complete user journeys for all user types without requiring admin privileges
@@ -6,7 +5,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { DRBE } from '@/lib/drbe';
+import { DRBE, validateOpportunity, validatePayment } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { notificationManager } from '@/lib/notifications';
 import { rbac } from '@/lib/rbac';
@@ -109,7 +108,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           }
         };
 
-        const validation = DRBE.validateOpportunity(testOpportunity);
+        const validation = validateOpportunity(testOpportunity);
         expect(validation.valid).toBe(true);
         expect(validation.errors.length).toBe(0);
 
@@ -230,7 +229,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           reference_number: 'REF-123456'
         };
 
-        const paymentValidation = DRBE.validatePayment(payment);
+        const paymentValidation = validatePayment(payment);
         expect(paymentValidation.valid).toBe(true);
 
         console.log('✅ Investor opportunity viewing and investment validation successful');
@@ -317,7 +316,7 @@ describe('Comprehensive User Journey Test Suite', () => {
   describe('4. Notification System', () => {
     it('should send and manage notifications for all user types', async () => {
       try {
-        // Test notification creation
+        // Test notification creation - fix function call to use single parameter
         const notification = await notificationManager.createNotification(
           entrepreneurId || '',
           'milestone-due',
@@ -359,7 +358,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           }
         };
 
-        const opportunityValidation = DRBE.validateOpportunity(opportunity);
+        const opportunityValidation = validateOpportunity(opportunity);
         expect(opportunityValidation.valid).toBe(true);
 
         // Test that investors can view opportunities (simulated)
@@ -408,7 +407,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           }
         };
 
-        const validation = DRBE.validateOpportunity(invalidOpportunity);
+        const validation = validateOpportunity(invalidOpportunity);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
 
@@ -421,7 +420,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           reference_number: ''
         };
 
-        const paymentValidation = DRBE.validatePayment(invalidPayment);
+        const paymentValidation = validatePayment(invalidPayment);
         expect(paymentValidation.valid).toBe(false);
         expect(paymentValidation.errors.length).toBeGreaterThan(0);
 
@@ -436,7 +435,7 @@ describe('Comprehensive User Journey Test Suite', () => {
   describe('7. Performance and Scalability', () => {
     it('should handle multiple concurrent operations', async () => {
       try {
-        // Test concurrent notification creation
+        // Test concurrent notification creation - fix function call to use single parameter  
         const concurrentNotifications = Array.from({ length: 5 }, (_, i) => 
           notificationManager.createNotification(
             entrepreneurId || '',
