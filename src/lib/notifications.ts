@@ -1,4 +1,3 @@
-
 // Notification Management System
 // Handles user notifications and system alerts
 
@@ -36,6 +35,13 @@ export interface NotificationPreferences {
   system_announcements: boolean;
 }
 
+export interface NotificationStats {
+  total: number;
+  unread: number;
+  read: number;
+  archived: number;
+}
+
 class NotificationService {
   async getNotifications(userId: string, limit = 50): Promise<Notification[]> {
     const { data, error } = await supabase
@@ -58,6 +64,25 @@ class NotificationService {
 
     if (error) throw error;
     return count || 0;
+  }
+
+  async getNotificationStats(userId: string): Promise<NotificationStats> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('status, is_read')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    const stats = data.reduce((acc, notification) => {
+      acc.total++;
+      if (!notification.is_read) acc.unread++;
+      else acc.read++;
+      if (notification.status === 'archived') acc.archived++;
+      return acc;
+    }, { total: 0, unread: 0, read: 0, archived: 0 });
+
+    return stats;
   }
 
   async markAsRead(notificationId: string): Promise<void> {
@@ -132,9 +157,32 @@ class NotificationService {
     if (error) throw error;
     return data as Notification[];
   }
+
+  async updatePreferences(userId: string, preferences: Partial<NotificationPreferences>): Promise<void> {
+    // Mock implementation since we don't have a preferences table yet
+    console.log('Updating notification preferences for user:', userId, preferences);
+  }
+
+  async getPreferences(userId: string): Promise<NotificationPreferences> {
+    // Mock implementation since we don't have a preferences table yet
+    return {
+      email_notifications: true,
+      push_notifications: true,
+      investment_updates: true,
+      milestone_alerts: true,
+      payment_notifications: true,
+      system_announcements: true
+    };
+  }
 }
 
 export const notificationService = new NotificationService();
+
+// Export manager alias for backward compatibility
+export const notificationManager = notificationService;
+
+// Export stats function for backward compatibility
+export const getNotificationStats = (userId: string) => notificationService.getNotificationStats(userId);
 
 // Utility functions for creating specific notification types
 export async function createInvestmentNotification(

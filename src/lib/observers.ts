@@ -42,6 +42,13 @@ export interface ObserverInvitation {
   token: string;
 }
 
+export interface ObserverStats {
+  totalObservers: number;
+  activeObservers: number;
+  pendingInvitations: number;
+  revokedObservers: number;
+}
+
 class ObserverService {
   async getObservers(entityId: string, entityType: string): Promise<Observer[]> {
     const { data, error } = await supabase
@@ -60,6 +67,10 @@ class ObserverService {
     })) as Observer[];
   }
 
+  async getObserversByUser(userId: string, entityId: string, entityType: string): Promise<Observer[]> {
+    return this.getObservers(entityId, entityType);
+  }
+
   async getObserverInvitations(entityId: string, entityType: string): Promise<ObserverInvitation[]> {
     const { data, error } = await supabase
       .from('observer_invitations')
@@ -74,6 +85,24 @@ class ObserverService {
       ...inv,
       permissions: this.parsePermissions(inv.permissions)
     })) as ObserverInvitation[];
+  }
+
+  async getPendingInvitations(userId: string, entityId: string, entityType: string): Promise<ObserverInvitation[]> {
+    return this.getObserverInvitations(entityId, entityType);
+  }
+
+  async getObserverStats(userId: string, entityId: string, entityType: string): Promise<ObserverStats> {
+    const [observers, invitations] = await Promise.all([
+      this.getObservers(entityId, entityType),
+      this.getObserverInvitations(entityId, entityType)
+    ]);
+
+    return {
+      totalObservers: observers.length,
+      activeObservers: observers.filter(o => o.status === 'active').length,
+      pendingInvitations: invitations.filter(i => i.status === 'pending').length,
+      revokedObservers: observers.filter(o => o.status === 'revoked').length
+    };
   }
 
   async inviteObserver(invitation: Omit<ObserverInvitation, 'id' | 'invited_at' | 'token' | 'status'>): Promise<ObserverInvitation> {
@@ -154,7 +183,7 @@ class ObserverService {
     } as Observer;
   }
 
-  async revokeObserver(observerId: string): Promise<void> {
+  async revokeObserver(observerId: string, userId?: string): Promise<void> {
     const { error } = await supabase
       .from('observers')
       .update({ status: 'revoked' })
@@ -202,6 +231,45 @@ class ObserverService {
 }
 
 export const observerService = new ObserverService();
+
+// Export individual functions for backward compatibility
+export const getObserversByUser = (userId: string, entityId: string, entityType: string) => 
+  observerService.getObserversByUser(userId, entityId, entityType);
+
+export const getPendingInvitations = (userId: string, entityId: string, entityType: string) => 
+  observerService.getPendingInvitations(userId, entityId, entityType);
+
+export const inviteObserver = (data: { email: string; name: string; relationship: string; entityId: string; entityType: string; permissions: ObserverPermission[]; inviterId: string }) => 
+  observerService.inviteObserver({
+    email: data.email,
+    name: data.name,
+    relationship: data.relationship,
+    entity_id: data.entityId,
+    entity_type: data.entityType,
+    permissions: data.permissions,
+    invited_by: data.inviterId,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+  });
+
+export const revokeObserver = (observerId: string, userId: string) => 
+  observerService.revokeObserver(observerId, userId);
+
+export const getObserverStats = (userId: string, entityId: string, entityType: string) => 
+  observerService.getObserverStats(userId, entityId, entityType);
+
+// Mock functions for permissions and relationships
+export const getAvailablePermissions = (entityType: string): ObserverPermission[] => {
+  return DEFAULT_OBSERVER_PERMISSIONS.investor || [];
+};
+
+export const getRelationshipOptions = () => [
+  { value: 'investor', label: 'Investor' },
+  { value: 'advisor', label: 'Advisor' },
+  { value: 'auditor', label: 'Auditor' },
+  { value: 'mentor', label: 'Mentor' },
+  { value: 'partner', label: 'Partner' },
+  { value: 'consultant', label: 'Consultant' }
+];
 
 // Default permission sets
 export const DEFAULT_OBSERVER_PERMISSIONS: Record<string, ObserverPermission[]> = {
@@ -257,8 +325,4 @@ export async function grantObserverAccess(
 
 export async function getObserversForEntity(entityId: string, entityType: string): Promise<Observer[]> {
   return observerService.getObservers(entityId, entityType);
-}
-
-export async function getPendingInvitations(entityId: string, entityType: string): Promise<ObserverInvitation[]> {
-  return observerService.getObserverInvitations(entityId, entityType);
 }

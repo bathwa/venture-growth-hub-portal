@@ -1,6 +1,5 @@
 
 import * as tf from '@tensorflow/tfjs';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface AIModel {
   id: string;
@@ -50,14 +49,51 @@ class AIModelService {
   }
 
   async getActiveModels(): Promise<AIModel[]> {
-    const { data, error } = await supabase
-      .from('ai_models')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data as AIModel[];
+    // Mock data since AI models table doesn't exist yet
+    return [
+      {
+        id: '1',
+        name: 'Risk Assessment Model v1',
+        description: 'AI model for assessing investment risk',
+        model_type: 'risk_assessment',
+        model_url: '/models/risk_assessment_v1.json',
+        version: '1.0',
+        is_active: true,
+        accuracy_score: 0.85,
+        training_date: '2024-01-01',
+        metadata: {},
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01'
+      },
+      {
+        id: '2',
+        name: 'Opportunity Scoring Model v1',
+        description: 'AI model for scoring investment opportunities',
+        model_type: 'opportunity_scoring',
+        model_url: '/models/opportunity_scoring_v1.json',
+        version: '1.0',
+        is_active: true,
+        accuracy_score: 0.82,
+        training_date: '2024-01-01',
+        metadata: {},
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01'
+      },
+      {
+        id: '3',
+        name: 'Market Analysis Model v1',
+        description: 'AI model for market analysis',
+        model_type: 'market_analysis',
+        model_url: '/models/market_analysis_v1.json',
+        version: '1.0',
+        is_active: true,
+        accuracy_score: 0.78,
+        training_date: '2024-01-01',
+        metadata: {},
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01'
+      }
+    ];
   }
 
   async predictRiskScore(opportunityData: any): Promise<{ score: number; confidence: number }> {
@@ -70,35 +106,30 @@ class AIModelService {
         return this.calculateRuleBasedRiskScore(opportunityData);
       }
 
-      const model = await this.loadModel(riskModel.model_url);
-      
-      // Prepare input tensor
-      const inputFeatures = this.prepareRiskAssessmentInput(opportunityData);
-      const inputTensor = tf.tensor2d([inputFeatures]);
-      
-      // Make prediction
-      const prediction = model.predict(inputTensor) as tf.Tensor;
-      const predictionData = await prediction.data();
-      
-      // Clean up tensors
-      inputTensor.dispose();
-      prediction.dispose();
-      
-      const score = predictionData[0] * 100; // Convert to percentage
-      const confidence = Math.min(predictionData[1] || 0.8, 1.0);
-      
-      // Store prediction
-      await this.storePrediction({
-        model_id: riskModel.id,
-        entity_type: 'opportunity',
-        entity_id: opportunityData.id,
-        prediction_type: 'risk_score',
-        input_data: opportunityData,
-        output_data: { score, confidence },
-        confidence_score: confidence
-      });
-      
-      return { score, confidence };
+      // Try to load the model, but fall back if it fails
+      try {
+        const model = await this.loadModel(riskModel.model_url);
+        
+        // Prepare input tensor
+        const inputFeatures = this.prepareRiskAssessmentInput(opportunityData);
+        const inputTensor = tf.tensor2d([inputFeatures]);
+        
+        // Make prediction
+        const prediction = model.predict(inputTensor) as tf.Tensor;
+        const predictionData = await prediction.data();
+        
+        // Clean up tensors
+        inputTensor.dispose();
+        prediction.dispose();
+        
+        const score = predictionData[0] * 100; // Convert to percentage
+        const confidence = Math.min(predictionData[1] || 0.8, 1.0);
+        
+        return { score, confidence };
+      } catch (modelError) {
+        console.warn('AI model failed, using fallback:', modelError);
+        return this.calculateRuleBasedRiskScore(opportunityData);
+      }
     } catch (error) {
       console.error('Error in AI risk prediction:', error);
       return this.calculateRuleBasedRiskScore(opportunityData);
@@ -114,31 +145,26 @@ class AIModelService {
         return this.calculateRuleBasedOpportunityScore(opportunityData);
       }
 
-      const model = await this.loadModel(scoringModel.model_url);
-      
-      const inputFeatures = this.prepareOpportunityScoringInput(opportunityData);
-      const inputTensor = tf.tensor2d([inputFeatures]);
-      
-      const prediction = model.predict(inputTensor) as tf.Tensor;
-      const predictionData = await prediction.data();
-      
-      inputTensor.dispose();
-      prediction.dispose();
-      
-      const score = predictionData[0] * 100;
-      const confidence = Math.min(predictionData[1] || 0.75, 1.0);
-      
-      await this.storePrediction({
-        model_id: scoringModel.id,
-        entity_type: 'opportunity',
-        entity_id: opportunityData.id,
-        prediction_type: 'opportunity_score',
-        input_data: opportunityData,
-        output_data: { score, confidence },
-        confidence_score: confidence
-      });
-      
-      return { score, confidence };
+      try {
+        const model = await this.loadModel(scoringModel.model_url);
+        
+        const inputFeatures = this.prepareOpportunityScoringInput(opportunityData);
+        const inputTensor = tf.tensor2d([inputFeatures]);
+        
+        const prediction = model.predict(inputTensor) as tf.Tensor;
+        const predictionData = await prediction.data();
+        
+        inputTensor.dispose();
+        prediction.dispose();
+        
+        const score = predictionData[0] * 100;
+        const confidence = Math.min(predictionData[1] || 0.75, 1.0);
+        
+        return { score, confidence };
+      } catch (modelError) {
+        console.warn('AI model failed, using fallback:', modelError);
+        return this.calculateRuleBasedOpportunityScore(opportunityData);
+      }
     } catch (error) {
       console.error('Error in AI opportunity scoring:', error);
       return this.calculateRuleBasedOpportunityScore(opportunityData);
@@ -242,31 +268,9 @@ class AIModelService {
     };
   }
 
-  private async storePrediction(predictionData: Omit<AIPrediction, 'id' | 'created_at' | 'created_by'>): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('ai_predictions')
-        .insert({
-          ...predictionData,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        });
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error storing AI prediction:', error);
-    }
-  }
-
   async getPredictionHistory(entityType: string, entityId: string): Promise<AIPrediction[]> {
-    const { data, error } = await supabase
-      .from('ai_predictions')
-      .select('*')
-      .eq('entity_type', entityType)
-      .eq('entity_id', entityId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data as AIPrediction[];
+    // Mock data since AI predictions table doesn't exist yet
+    return [];
   }
 }
 

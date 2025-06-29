@@ -1,4 +1,3 @@
-
 // AI-Powered Investment Analysis System
 // Enhanced with TensorFlow.js integration for DRBE insights
 
@@ -36,9 +35,9 @@ class AIService {
     console.log('Starting AI analysis for opportunity:', opportunity.id);
     
     try {
-      // Get AI predictions
-      const riskPrediction = await aiModelService.predictRiskScore(opportunity);
-      const opportunityPrediction = await aiModelService.predictOpportunityScore(opportunity);
+      // Get AI predictions using rule-based fallback since AI models table doesn't exist yet
+      const riskPrediction = await this.getRiskScoreFallback(opportunity);
+      const opportunityPrediction = await this.getOpportunityScoreFallback(opportunity);
       
       // Calculate market score using available data
       const marketScore = this.calculateMarketScore(opportunity);
@@ -74,6 +73,44 @@ class AIService {
       console.error('Error in AI analysis:', error);
       return this.getFallbackAnalysis(opportunity);
     }
+  }
+
+  // Backward compatibility function
+  async getRiskScore(input: number[]): Promise<number> {
+    const mockOpportunity: Opportunity = {
+      id: 'temp',
+      title: 'Temp Opportunity',
+      description: 'Temporary opportunity for risk scoring',
+      entrepreneur_id: 'temp',
+      target_amount: input[0] || 100000,
+      equity_offered: input[1] || 10,
+      min_investment: input[2] || 1000,
+      industry: 'technology',
+      location: 'Unknown',
+      status: 'draft',
+      business_stage: 'startup',
+      funding_type: 'equity',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      fields: {}
+    };
+    
+    const analysis = await this.analyzeOpportunity(mockOpportunity);
+    return analysis.riskScore;
+  }
+
+  private async getRiskScoreFallback(opportunity: Opportunity): Promise<{ score: number; confidence: number }> {
+    return {
+      score: this.calculateBasicRiskScore(opportunity),
+      confidence: 0.6
+    };
+  }
+
+  private async getOpportunityScoreFallback(opportunity: Opportunity): Promise<{ score: number; confidence: number }> {
+    return {
+      score: this.calculateBasicOpportunityScore(opportunity),
+      confidence: 0.6
+    };
   }
 
   private async generateInsights(
@@ -323,7 +360,8 @@ class AIService {
   }
 
   async getHistoricalPredictions(entityType: string, entityId: string) {
-    return await aiModelService.getPredictionHistory(entityType, entityId);
+    // Mock data since AI predictions table doesn't exist yet
+    return [];
   }
 }
 
@@ -334,3 +372,6 @@ export const AI = {
   analyzeOpportunity: (opportunity: Opportunity) => aiService.analyzeOpportunity(opportunity),
   getHistoricalPredictions: (entityType: string, entityId: string) => aiService.getHistoricalPredictions(entityType, entityId)
 };
+
+// Export the getRiskScore function directly for backward compatibility
+export const getRiskScore = (input: number[]): Promise<number> => aiService.getRiskScore(input);
