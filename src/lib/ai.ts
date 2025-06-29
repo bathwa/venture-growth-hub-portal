@@ -239,7 +239,7 @@ class AIModelManager {
       recommendations,
       factors,
       timestamp: new Date().toISOString(),
-      validated: drbe.validateAIOutput('investment_recommendation', prediction.class)
+      validated: drbe.validateAIOutput('investment_recommendation', prediction.class) !== prediction.class
     };
   }
 
@@ -259,7 +259,7 @@ class AIModelManager {
       recommendations,
       factors,
       timestamp: new Date().toISOString(),
-      validated: drbe.validateAIOutput('compliance_check', prediction.class)
+      validated: drbe.validateAIOutput('compliance_check', prediction.class) !== prediction.class
     };
   }
 
@@ -311,23 +311,23 @@ class AIModelManager {
     }
   }
 
-  // Feature extraction methods
+  // Feature extraction methods with safe property access
   private extractRiskFeatures(opportunity: Opportunity): number[] {
     const features = [];
     
     // Financial features
-    features.push(parseFloat(opportunity.fields.equity_offered) || 0);
-    features.push(parseFloat(opportunity.fields.funding_amount) || 0);
-    features.push(parseFloat(opportunity.fields.current_revenue) || 0);
-    features.push(parseFloat(opportunity.fields.projected_revenue) || 0);
+    features.push(parseFloat(opportunity.fields.equity_offered || '0') || 0);
+    features.push(parseFloat(opportunity.fields.funding_amount || '0') || 0);
+    features.push(parseFloat(opportunity.fields.current_revenue || '0') || 0);
+    features.push(parseFloat(opportunity.fields.projected_revenue || '0') || 0);
     
     // Operational features
-    features.push(parseInt(opportunity.fields.team_size) || 0);
-    features.push(parseFloat(opportunity.fields.market_size) || 0);
-    features.push(parseInt(opportunity.fields.competition_level) || 0);
+    features.push(parseInt(opportunity.fields.team_size || '0') || 0);
+    features.push(parseFloat(opportunity.fields.market_size || '0') || 0);
+    features.push(parseInt(opportunity.fields.competition_level || '0') || 0);
     
     // Technical features
-    features.push(parseInt(opportunity.fields.technology_readiness_level) || 0);
+    features.push(parseInt(opportunity.fields.technology_readiness_level || '0') || 0);
     features.push(opportunity.fields.ip_protection === 'true' ? 1 : 0);
     
     // Compliance features
@@ -340,21 +340,21 @@ class AIModelManager {
     const features = [];
     
     // Market features
-    features.push(parseFloat(opportunity.fields.market_growth_rate) || 0);
-    features.push(parseFloat(opportunity.fields.competitive_advantage) || 0);
-    features.push(parseFloat(opportunity.fields.customer_validation) || 0);
+    features.push(parseFloat(opportunity.fields.market_growth_rate || '0') || 0);
+    features.push(parseFloat(opportunity.fields.competitive_advantage || '0') || 0);
+    features.push(parseFloat(opportunity.fields.customer_validation || '0') || 0);
     
     // Team features
-    features.push(parseFloat(opportunity.fields.team_experience) || 0);
-    features.push(parseInt(opportunity.fields.team_size) || 0);
+    features.push(parseFloat(opportunity.fields.team_experience || '0') || 0);
+    features.push(parseInt(opportunity.fields.team_size || '0') || 0);
     
     // Technology features
-    features.push(parseFloat(opportunity.fields.technology_innovation) || 0);
-    features.push(parseFloat(opportunity.fields.scalability_potential) || 0);
+    features.push(parseFloat(opportunity.fields.technology_innovation || '0') || 0);
+    features.push(parseFloat(opportunity.fields.scalability_potential || '0') || 0);
     
     // Financial features
-    features.push(parseFloat(opportunity.fields.financial_projections) || 0);
-    features.push(parseFloat(opportunity.fields.exit_strategy) || 0);
+    features.push(parseFloat(opportunity.fields.financial_projections || '0') || 0);
+    features.push(parseFloat(opportunity.fields.exit_strategy || '0') || 0);
     
     return features;
   }
@@ -363,8 +363,8 @@ class AIModelManager {
     const features = [];
     
     // Risk features
-    features.push(parseFloat(opportunity.fields.risk_score) || 50);
-    features.push(parseFloat(opportunity.fields.expected_roi) || 0);
+    features.push(parseFloat(opportunity.fields.risk_score || '50') || 50);
+    features.push(parseFloat(opportunity.fields.expected_roi || '0') || 0);
     
     // Investment features
     features.push(parseInt(investorProfile.investment_horizon) || 5);
@@ -372,8 +372,8 @@ class AIModelManager {
     features.push(parseFloat(investorProfile.diversification_benefit) || 0);
     
     // Market features
-    features.push(parseFloat(opportunity.fields.market_timing) || 0);
-    features.push(parseFloat(opportunity.fields.due_diligence_score) || 0);
+    features.push(parseFloat(opportunity.fields.market_timing || '0') || 0);
+    features.push(parseFloat(opportunity.fields.due_diligence_score || '0') || 0);
     
     return features;
   }
@@ -391,7 +391,7 @@ class AIModelManager {
     
     // Legal features
     features.push(opportunity.fields.legal_structure === 'complete' ? 1 : 0);
-    features.push(opportunity.fields.documentation_completeness || 0);
+    features.push(parseFloat(opportunity.fields.documentation_completeness || '0') || 0);
     
     // Audit features
     features.push(opportunity.fields.audit_history === 'clean' ? 1 : 0);
@@ -426,11 +426,19 @@ class AIModelManager {
     // Base risk from AI prediction
     riskScore += prediction.riskScore;
     
-    // Additional risk factors
-    if (opportunity.fields.equity_offered > 50) riskScore += 10;
-    if (opportunity.fields.funding_amount > 5000000) riskScore += 15;
-    if (opportunity.fields.team_size < 2) riskScore += 20;
-    if (opportunity.fields.technology_readiness_level < 4) riskScore += 25;
+    // Additional risk factors with safe property access
+    const equityOffered = parseFloat(opportunity.fields.equity_offered || '0');
+    if (equityOffered > 50) riskScore += 10;
+    
+    const fundingAmount = parseFloat(opportunity.fields.funding_amount || '0');
+    if (fundingAmount > 5000000) riskScore += 15;
+    
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize < 2) riskScore += 20;
+    
+    const techReadiness = parseInt(opportunity.fields.technology_readiness_level || '0');
+    if (techReadiness < 4) riskScore += 25;
+    
     if (opportunity.fields.regulatory_compliant !== 'true') riskScore += 30;
     
     return Math.min(riskScore, 100);
@@ -475,23 +483,37 @@ class AIModelManager {
 
   private calculateFinancialRisk(opportunity: Opportunity): number {
     let risk = 0;
-    if (parseFloat(opportunity.fields.equity_offered) > 50) risk += 20;
-    if (parseFloat(opportunity.fields.funding_amount) > 5000000) risk += 25;
-    if (parseFloat(opportunity.fields.projected_revenue) > parseFloat(opportunity.fields.current_revenue) * 10) risk += 30;
+    const equityOffered = parseFloat(opportunity.fields.equity_offered || '0');
+    if (equityOffered > 50) risk += 20;
+    
+    const fundingAmount = parseFloat(opportunity.fields.funding_amount || '0');
+    if (fundingAmount > 5000000) risk += 25;
+    
+    const projectedRevenue = parseFloat(opportunity.fields.projected_revenue || '0');
+    const currentRevenue = parseFloat(opportunity.fields.current_revenue || '0');
+    if (projectedRevenue > currentRevenue * 10) risk += 30;
+    
     return Math.min(risk, 100);
   }
 
   private calculateOperationalRisk(opportunity: Opportunity): number {
     let risk = 0;
-    if (parseInt(opportunity.fields.team_size) < 2) risk += 40;
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize < 2) risk += 40;
+    
     if (!opportunity.fields.market_research) risk += 25;
-    if (opportunity.milestones.length === 0) risk += 20;
+    
+    const milestones = opportunity.milestones || [];
+    if (milestones.length === 0) risk += 20;
+    
     return Math.min(risk, 100);
   }
 
   private calculateTechnicalRisk(opportunity: Opportunity): number {
     let risk = 0;
-    if (parseInt(opportunity.fields.technology_readiness_level) < 4) risk += 35;
+    const techReadiness = parseInt(opportunity.fields.technology_readiness_level || '0');
+    if (techReadiness < 4) risk += 35;
+    
     if (opportunity.fields.ip_protection !== 'true') risk += 30;
     if (!opportunity.fields.scalable) risk += 20;
     return Math.min(risk, 100);
@@ -507,24 +529,31 @@ class AIModelManager {
 
   private calculateMarketRisk(opportunity: Opportunity): number {
     let risk = 0;
-    if (parseInt(opportunity.fields.competition_level) > 7) risk += 25;
-    if (parseFloat(opportunity.fields.market_size) < 1000000) risk += 20;
+    const competitionLevel = parseInt(opportunity.fields.competition_level || '0');
+    if (competitionLevel > 7) risk += 25;
+    
+    const marketSize = parseFloat(opportunity.fields.market_size || '0');
+    if (marketSize < 1000000) risk += 20;
     if (!opportunity.fields.customer_validation) risk += 30;
+    
     return Math.min(risk, 100);
   }
 
   private identifyRiskFactors(opportunity: Opportunity, prediction: any): string[] {
     const factors: string[] = [];
     
-    if (parseFloat(opportunity.fields.equity_offered) > 50) {
+    const equityOffered = parseFloat(opportunity.fields.equity_offered || '0');
+    if (equityOffered > 50) {
       factors.push('High equity offering may indicate desperation');
     }
     
-    if (parseInt(opportunity.fields.team_size) < 2) {
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize < 2) {
       factors.push('Small team size increases operational risk');
     }
     
-    if (parseInt(opportunity.fields.technology_readiness_level) < 4) {
+    const techReadiness = parseInt(opportunity.fields.technology_readiness_level || '0');
+    if (techReadiness < 4) {
       factors.push('Low technology readiness level');
     }
     
@@ -560,19 +589,29 @@ class AIModelManager {
     let score = 0;
     
     // Market factors
-    if (parseFloat(opportunity.fields.market_growth_rate) > 10) score += 20;
-    if (parseFloat(opportunity.fields.competitive_advantage) > 7) score += 15;
+    const marketGrowthRate = parseFloat(opportunity.fields.market_growth_rate || '0');
+    if (marketGrowthRate > 10) score += 20;
+    
+    const competitiveAdvantage = parseFloat(opportunity.fields.competitive_advantage || '0');
+    if (competitiveAdvantage > 7) score += 15;
     
     // Team factors
-    if (parseFloat(opportunity.fields.team_experience) > 5) score += 15;
-    if (parseInt(opportunity.fields.team_size) > 3) score += 10;
+    const teamExperience = parseFloat(opportunity.fields.team_experience || '0');
+    if (teamExperience > 5) score += 15;
+    
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize > 3) score += 10;
     
     // Technology factors
-    if (parseFloat(opportunity.fields.technology_innovation) > 7) score += 15;
-    if (parseFloat(opportunity.fields.scalability_potential) > 7) score += 15;
+    const techInnovation = parseFloat(opportunity.fields.technology_innovation || '0');
+    if (techInnovation > 7) score += 15;
+    
+    const scalabilityPotential = parseFloat(opportunity.fields.scalability_potential || '0');
+    if (scalabilityPotential > 7) score += 15;
     
     // Financial factors
-    if (parseFloat(opportunity.fields.financial_projections) > 7) score += 10;
+    const financialProjections = parseFloat(opportunity.fields.financial_projections || '0');
+    if (financialProjections > 7) score += 10;
     
     return Math.min(score, 100);
   }
@@ -772,4 +811,4 @@ export async function getRiskScore(input: number[]): Promise<number> {
 
   const riskAssessment = await aiModelManager.assessRisk(mockOpportunity);
   return drbe.validateAIOutput('risk_score', riskAssessment.overallRisk);
-} 
+}
