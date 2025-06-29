@@ -114,3 +114,5 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
     currency: currency,
   }).format(amount);
 };
+
+export const validatePayment = DRBE.validatePayment;

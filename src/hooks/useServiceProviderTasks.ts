@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface Task {
@@ -17,36 +16,26 @@ export interface Task {
 
 export const useServiceProviderTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Since there's no tasks table in the database, we'll use local storage for demo purposes
+  const STORAGE_KEY = `tasks_${user?.id || 'demo'}`;
+
   const fetchTasks = async () => {
-    if (!user) return;
-    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedTasks = data?.map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        status: task.status as Task['status'],
-        priority: task.priority as Task['priority'],
-        dueDate: task.due_date ? new Date(task.due_date) : undefined,
-        opportunityId: task.opportunity_id,
-        createdAt: new Date(task.created_at),
-        updatedAt: new Date(task.updated_at)
-      })) || [];
-
-      setTasks(formattedTasks);
+      const storedTasks = localStorage.getItem(STORAGE_KEY);
+      if (storedTasks) {
+        const parsedTasks = JSON.parse(storedTasks).map((task: any) => ({
+          ...task,
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          createdAt: new Date(task.createdAt),
+          updatedAt: new Date(task.updatedAt)
+        }));
+        setTasks(parsedTasks);
+      }
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
@@ -55,28 +44,23 @@ export const useServiceProviderTasks = () => {
     }
   };
 
+  const saveTasks = (updatedTasks: Task[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedTasks));
+    setTasks(updatedTasks);
+  };
+
   const createTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          user_id: user.id,
-          title: taskData.title,
-          description: taskData.description,
-          status: taskData.status,
-          priority: taskData.priority,
-          due_date: taskData.dueDate?.toISOString(),
-          opportunity_id: taskData.opportunityId
-        })
-        .select()
-        .single();
+      const newTask: Task = {
+        ...taskData,
+        id: `task-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
-      if (error) throw error;
-
-      await fetchTasks();
-      return data;
+      const updatedTasks = [...tasks, newTask];
+      saveTasks(updatedTasks);
+      return newTask;
     } catch (err) {
       console.error('Error creating task:', err);
       throw err;
@@ -85,21 +69,12 @@ export const useServiceProviderTasks = () => {
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: updates.title,
-          description: updates.description,
-          status: updates.status,
-          priority: updates.priority,
-          due_date: updates.dueDate?.toISOString(),
-          opportunity_id: updates.opportunityId
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      await fetchTasks();
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, ...updates, updatedAt: new Date() }
+          : task
+      );
+      saveTasks(updatedTasks);
     } catch (err) {
       console.error('Error updating task:', err);
       throw err;
@@ -108,14 +83,8 @@ export const useServiceProviderTasks = () => {
 
   const deleteTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      await fetchTasks();
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      saveTasks(updatedTasks);
     } catch (err) {
       console.error('Error deleting task:', err);
       throw err;
