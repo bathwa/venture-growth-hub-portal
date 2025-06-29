@@ -1,7 +1,8 @@
+
 // AI-Powered Investment Analysis System
 // Enhanced with TensorFlow.js integration for DRBE insights
 
-import { drbe, DRBE, ValidationResult, Opportunity, RiskLevel } from './drbe';
+import { drbe, DRBE, ValidationResult, RiskLevel } from './drbe';
 import { aiModelService } from './ai-models';
 
 export type AIInsightType = 'risk_assessment' | 'market_analysis' | 'opportunity_scoring' | 'investment_recommendation';
@@ -13,6 +14,31 @@ export interface AIInsight {
   explanation: string;
   factors: string[];
   timestamp: string;
+}
+
+// Use the database opportunity interface instead of DRBE's
+export interface DatabaseOpportunity {
+  id: string;
+  title: string;
+  description: string;
+  entrepreneur_id: string;
+  target_amount: number;
+  equity_offered: number;
+  min_investment: number;
+  max_investment?: number;
+  funding_type: 'equity' | 'debt' | 'convertible';
+  business_stage: 'idea' | 'startup' | 'growth' | 'mature';
+  industry: string;
+  location: string;
+  status: 'draft' | 'published' | 'funded' | 'closed';
+  views?: number;
+  interested_investors?: number;
+  team_size?: number;
+  expected_return?: number;
+  timeline?: number;
+  founded_year?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OpportunityAnalysis {
@@ -31,7 +57,7 @@ export interface OpportunityAnalysis {
 }
 
 class AIService {
-  async analyzeOpportunity(opportunity: Opportunity): Promise<OpportunityAnalysis> {
+  async analyzeOpportunity(opportunity: DatabaseOpportunity): Promise<OpportunityAnalysis> {
     console.log('Starting AI analysis for opportunity:', opportunity.id);
     
     try {
@@ -77,10 +103,9 @@ class AIService {
 
   // Backward compatibility function
   async getRiskScore(input: number[]): Promise<number> {
-    const mockOpportunity: Opportunity = {
+    const mockOpportunity: DatabaseOpportunity = {
       id: 'temp',
       title: 'Temp Opportunity',
-      description: 'Temporary opportunity for risk scoring',
       entrepreneur_id: 'temp',
       target_amount: input[0] || 100000,
       equity_offered: input[1] || 10,
@@ -92,21 +117,21 @@ class AIService {
       funding_type: 'equity',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      fields: {}
+      description: 'Temporary opportunity for risk scoring'
     };
     
     const analysis = await this.analyzeOpportunity(mockOpportunity);
     return analysis.riskScore;
   }
 
-  private async getRiskScoreFallback(opportunity: Opportunity): Promise<{ score: number; confidence: number }> {
+  private async getRiskScoreFallback(opportunity: DatabaseOpportunity): Promise<{ score: number; confidence: number }> {
     return {
       score: this.calculateBasicRiskScore(opportunity),
       confidence: 0.6
     };
   }
 
-  private async getOpportunityScoreFallback(opportunity: Opportunity): Promise<{ score: number; confidence: number }> {
+  private async getOpportunityScoreFallback(opportunity: DatabaseOpportunity): Promise<{ score: number; confidence: number }> {
     return {
       score: this.calculateBasicOpportunityScore(opportunity),
       confidence: 0.6
@@ -114,7 +139,7 @@ class AIService {
   }
 
   private async generateInsights(
-    opportunity: Opportunity, 
+    opportunity: DatabaseOpportunity, 
     predictions: any
   ): Promise<AIInsight[]> {
     const insights: AIInsight[] = [];
@@ -152,7 +177,7 @@ class AIService {
     return insights;
   }
 
-  private calculateMarketScore(opportunity: Opportunity): number {
+  private calculateMarketScore(opportunity: DatabaseOpportunity): number {
     let score = 50; // Base score
     
     // Industry scoring
@@ -174,7 +199,7 @@ class AIService {
     return Math.max(0, Math.min(100, score));
   }
 
-  private generateRiskExplanation(opportunity: Opportunity, riskScore: number): string {
+  private generateRiskExplanation(opportunity: DatabaseOpportunity, riskScore: number): string {
     if (riskScore > 75) {
       return `High risk investment due to early stage business (${opportunity.business_stage}) and market uncertainties.`;
     } else if (riskScore > 50) {
@@ -186,7 +211,7 @@ class AIService {
     }
   }
 
-  private generateMarketExplanation(opportunity: Opportunity, marketScore: number): string {
+  private generateMarketExplanation(opportunity: DatabaseOpportunity, marketScore: number): string {
     if (marketScore > 75) {
       return `Excellent market opportunity in a high-growth sector with strong investor interest.`;
     } else if (marketScore > 50) {
@@ -198,7 +223,7 @@ class AIService {
     }
   }
 
-  private generateOpportunityExplanation(opportunity: Opportunity, score: number): string {
+  private generateOpportunityExplanation(opportunity: DatabaseOpportunity, score: number): string {
     if (score > 75) {
       return `Outstanding investment opportunity with strong team, clear vision, and excellent market fit.`;
     } else if (score > 50) {
@@ -210,7 +235,7 @@ class AIService {
     }
   }
 
-  private identifyRiskFactors(opportunity: Opportunity): string[] {
+  private identifyRiskFactors(opportunity: DatabaseOpportunity): string[] {
     const factors: string[] = [];
     
     if (opportunity.business_stage === 'idea' || opportunity.business_stage === 'startup') {
@@ -232,7 +257,7 @@ class AIService {
     return factors;
   }
 
-  private identifyMarketFactors(opportunity: Opportunity): string[] {
+  private identifyMarketFactors(opportunity: DatabaseOpportunity): string[] {
     const factors: string[] = [];
     
     factors.push(`Operating in ${opportunity.industry} industry`);
@@ -249,7 +274,7 @@ class AIService {
     return factors;
   }
 
-  private identifyOpportunityFactors(opportunity: Opportunity): string[] {
+  private identifyOpportunityFactors(opportunity: DatabaseOpportunity): string[] {
     const factors: string[] = [];
     
     factors.push(`Business stage: ${opportunity.business_stage}`);
@@ -263,7 +288,7 @@ class AIService {
     return factors;
   }
 
-  private generateRecommendations(opportunity: Opportunity, insights: AIInsight[]): string[] {
+  private generateRecommendations(opportunity: DatabaseOpportunity, insights: AIInsight[]): string[] {
     const recommendations: string[] = [];
     
     const riskInsight = insights.find(i => i.type === 'risk_assessment');
@@ -290,7 +315,7 @@ class AIService {
     return recommendations;
   }
 
-  private getFallbackAnalysis(opportunity: Opportunity): OpportunityAnalysis {
+  private getFallbackAnalysis(opportunity: DatabaseOpportunity): OpportunityAnalysis {
     // Fallback to rule-based analysis if AI fails
     const riskScore = this.calculateBasicRiskScore(opportunity);
     const opportunityScore = this.calculateBasicOpportunityScore(opportunity);
@@ -319,13 +344,12 @@ class AIService {
     };
   }
 
-  private calculateBasicRiskScore(opportunity: Opportunity): number {
+  private calculateBasicRiskScore(opportunity: DatabaseOpportunity): number {
     let riskScore = 50;
     
     if (opportunity.business_stage === 'idea') riskScore += 30;
     else if (opportunity.business_stage === 'startup') riskScore += 20;
     else if (opportunity.business_stage === 'growth') riskScore += 10;
-    else if (opportunity.business_stage === 'established') riskScore -= 10;
     
     if ((opportunity.team_size || 0) < 3) riskScore += 15;
     else if ((opportunity.team_size || 0) > 10) riskScore -= 10;
@@ -340,14 +364,13 @@ class AIService {
     return Math.max(0, Math.min(100, riskScore));
   }
 
-  private calculateBasicOpportunityScore(opportunity: Opportunity): number {
+  private calculateBasicOpportunityScore(opportunity: DatabaseOpportunity): number {
     let score = 50;
     
     score += Math.min((opportunity.interested_investors || 0) * 2, 20);
     score += Math.min((opportunity.views || 0) * 0.1, 15);
     
     if (opportunity.business_stage === 'growth') score += 20;
-    else if (opportunity.business_stage === 'established') score += 30;
     else if (opportunity.business_stage === 'startup') score += 10;
     
     const teamSize = opportunity.team_size || 0;
@@ -369,7 +392,7 @@ export const aiService = new AIService();
 
 // Export for backward compatibility
 export const AI = {
-  analyzeOpportunity: (opportunity: Opportunity) => aiService.analyzeOpportunity(opportunity),
+  analyzeOpportunity: (opportunity: DatabaseOpportunity) => aiService.analyzeOpportunity(opportunity),
   getHistoricalPredictions: (entityType: string, entityId: string) => aiService.getHistoricalPredictions(entityType, entityId)
 };
 
