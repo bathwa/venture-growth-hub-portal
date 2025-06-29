@@ -1,0 +1,52 @@
+
+{
+  "modelTopology": {
+    "class_name": "Sequential",
+    "config": {
+      "name": "opportunity_scoring_model",
+      "layers": [
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 32,
+            "activation": "relu",
+            "input_shape": [10]
+          }
+        },
+        {
+          "class_name": "Dropout",
+          "config": {
+            "rate": 0.2
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 16,
+            "activation": "relu"
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 2,
+            "activation": "sigmoid"
+          }
+        }
+      ]
+    }
+  },
+  "weightsManifest": [
+    {
+      "paths": ["opportunity_scoring_weights.bin"],
+      "weights": [
+        {"name": "dense/kernel", "shape": [10, 32], "dtype": "float32"},
+        {"name": "dense/bias", "shape": [32], "dtype": "float32"},
+        {"name": "dense_1/kernel", "shape": [32, 16], "dtype": "float32"},
+        {"name": "dense_1/bias", "shape": [16], "dtype": "float32"},
+        {"name": "dense_2/kernel", "shape": [16, 2], "dtype": "float32"},
+        {"name": "dense_2/bias", "shape": [2], "dtype": "float32"}
+      ]
+    }
+  ]
+}

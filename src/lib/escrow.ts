@@ -13,8 +13,8 @@ export interface EscrowAccount {
   opportunity_id: string;
   investor_id: string;
   entrepreneur_id: string;
-  type: string;
-  status: string;
+  type: EscrowType;
+  status: EscrowStatus;
   total_amount: number;
   available_balance: number;
   held_amount: number;
@@ -29,7 +29,7 @@ export interface EscrowAccount {
 export interface EscrowTransaction {
   id: string;
   escrow_account_id: string;
-  type: string;
+  type: TransactionType;
   amount: number;
   currency: string;
   reference: string;
@@ -52,6 +52,7 @@ export interface EscrowReleaseCondition {
   due_date: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export class EscrowService {
@@ -61,7 +62,7 @@ export class EscrowService {
     opportunity_id: string;
     investor_id: string;
     entrepreneur_id: string;
-    type: string;
+    type: EscrowType;
     status: EscrowStatus;
     total_amount: number;
     available_balance: number;
@@ -113,7 +114,7 @@ export class EscrowService {
   // Transactions
   static async createTransaction(data: {
     escrow_account_id: string;
-    type: string;
+    type: TransactionType;
     amount: number;
     currency: string;
     reference: string;
@@ -149,20 +150,55 @@ export class EscrowService {
     return data || [];
   }
 
-  // Mock release conditions since the table doesn't exist
-  static async createReleaseCondition(data: any): Promise<any> {
-    // Mock implementation since escrow_release_conditions table doesn't exist
-    return { id: 'mock-condition', ...data };
+  // Release conditions using the actual table
+  static async createReleaseCondition(data: {
+    escrow_account_id: string;
+    condition_type: string;
+    description: string;
+    due_date?: string;
+  }): Promise<EscrowReleaseCondition> {
+    const { data: condition, error } = await supabase
+      .from('escrow_release_conditions')
+      .insert({
+        escrow_account_id: data.escrow_account_id,
+        condition_type: data.condition_type,
+        description: data.description,
+        due_date: data.due_date,
+        is_met: false,
+        required_documents: []
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return condition;
   }
 
-  static async getReleaseConditions(accountId: string): Promise<any[]> {
-    // Mock implementation since escrow_release_conditions table doesn't exist
-    return [];
+  static async getReleaseConditions(accountId: string): Promise<EscrowReleaseCondition[]> {
+    const { data, error } = await supabase
+      .from('escrow_release_conditions')
+      .select('*')
+      .eq('escrow_account_id', accountId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
   }
 
-  static async updateReleaseCondition(id: string, updates: any): Promise<any> {
-    // Mock implementation since escrow_release_conditions table doesn't exist
-    return { id, ...updates };
+  static async updateReleaseCondition(id: string, updates: {
+    is_met?: boolean;
+    completed_at?: string;
+    required_documents?: string[];
+  }): Promise<EscrowReleaseCondition> {
+    const { data, error } = await supabase
+      .from('escrow_release_conditions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 }
 
@@ -190,23 +226,19 @@ export async function createEscrowAccount({
   
   const { data, error } = await supabase
     .from('escrow_accounts')
-    .insert([
-      {
-        account_number: accountNumber,
-        opportunity_id: opportunityId,
-        investor_id: investorId,
-        entrepreneur_id: entrepreneurId,
-        type,
-        status: 'pending',
-        total_amount: amount,
-        available_balance: 0,
-        held_amount: amount,
-        currency,
-        release_conditions: releaseConditions,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ])
+    .insert({
+      account_number: accountNumber,
+      opportunity_id: opportunityId,
+      investor_id: investorId,
+      entrepreneur_id: entrepreneurId,
+      type,
+      status: 'pending' as EscrowStatus,
+      total_amount: amount,
+      available_balance: 0,
+      held_amount: amount,
+      currency,
+      release_conditions: releaseConditions
+    })
     .select()
     .single();
 
@@ -242,7 +274,6 @@ export async function getEscrowAccountsByUser(userId: string, role: 'investor' |
 
 // Fund escrow account
 export async function fundEscrowAccount(accountId: string, amount: number, reference: string): Promise<EscrowTransaction> {
-  // First, get the account
   const account = await getEscrowAccount(accountId);
   if (!account) throw new Error('Escrow account not found');
   
@@ -250,32 +281,28 @@ export async function fundEscrowAccount(accountId: string, amount: number, refer
     throw new Error('Account is not in pending status');
   }
 
-  // Create transaction record
   const { data: transaction, error: txError } = await supabase
     .from('escrow_transactions')
-    .insert([
-      {
-        escrow_account_id: accountId,
-        type: 'deposit',
-        amount,
-        currency: account.currency,
-        reference,
-        description: `Initial funding for ${account.type} escrow`,
-        status: 'completed',
-        transaction_date: new Date().toISOString(),
-        processed_at: new Date().toISOString()
-      }
-    ])
+    .insert({
+      escrow_account_id: accountId,
+      type: 'deposit' as TransactionType,
+      amount,
+      currency: account.currency,
+      reference,
+      description: `Initial funding for ${account.type} escrow`,
+      status: 'completed',
+      transaction_date: new Date().toISOString(),
+      processed_at: new Date().toISOString()
+    })
     .select()
     .single();
 
   if (txError) throw txError;
 
-  // Update account status and balance
   const { error: updateError } = await supabase
     .from('escrow_accounts')
     .update({
-      status: 'funded',
+      status: 'funded' as EscrowStatus,
       available_balance: amount,
       held_amount: 0,
       updated_at: new Date().toISOString()
@@ -301,35 +328,31 @@ export async function releaseEscrowFunds(
     throw new Error('Insufficient funds in escrow account');
   }
 
-  // Create release transaction
   const { data: transaction, error: txError } = await supabase
     .from('escrow_transactions')
-    .insert([
-      {
-        escrow_account_id: accountId,
-        type: 'release',
-        amount,
-        currency: account.currency,
-        reference: `REL-${Date.now()}`,
-        description: reason,
-        status: 'completed',
-        transaction_date: new Date().toISOString(),
-        processed_at: new Date().toISOString(),
-        metadata: { recipient_id: recipientId }
-      }
-    ])
+    .insert({
+      escrow_account_id: accountId,
+      type: 'release' as TransactionType,
+      amount,
+      currency: account.currency,
+      reference: `REL-${Date.now()}`,
+      description: reason,
+      status: 'completed',
+      transaction_date: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
+      metadata: { recipient_id: recipientId }
+    })
     .select()
     .single();
 
   if (txError) throw txError;
 
-  // Update account balance
   const newBalance = account.available_balance - amount;
   const { error: updateError } = await supabase
     .from('escrow_accounts')
     .update({
       available_balance: newBalance,
-      status: newBalance === 0 ? 'released' : 'active',
+      status: newBalance === 0 ? 'released' as EscrowStatus : 'active' as EscrowStatus,
       updated_at: new Date().toISOString()
     })
     .eq('id', accountId);
@@ -358,30 +381,46 @@ export async function addReleaseCondition(
   description: string,
   dueDate?: string
 ): Promise<EscrowReleaseCondition> {
-  // Mock implementation since escrow_release_conditions table doesn't exist
-  return {
-    id: `mock-condition-${Date.now()}`,
-    escrow_account_id: accountId,
-    condition_type: conditionType,
-    description,
-    is_met: false,
-    required_documents: [],
-    due_date: dueDate || null,
-    completed_at: null,
-    created_at: new Date().toISOString()
-  };
+  const { data, error } = await supabase
+    .from('escrow_release_conditions')
+    .insert({
+      escrow_account_id: accountId,
+      condition_type: conditionType,
+      description,
+      due_date: dueDate,
+      is_met: false,
+      required_documents: []
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 // Mark release condition as met
 export async function markReleaseConditionMet(conditionId: string): Promise<void> {
-  // Mock implementation since escrow_release_conditions table doesn't exist
-  console.log(`Mock: Marking condition ${conditionId} as met`);
+  const { error } = await supabase
+    .from('escrow_release_conditions')
+    .update({
+      is_met: true,
+      completed_at: new Date().toISOString()
+    })
+    .eq('id', conditionId);
+
+  if (error) throw error;
 }
 
 // Get release conditions for account
 export async function getReleaseConditions(accountId: string): Promise<EscrowReleaseCondition[]> {
-  // Mock implementation since escrow_release_conditions table doesn't exist
-  return [];
+  const { data, error } = await supabase
+    .from('escrow_release_conditions')
+    .select('*')
+    .eq('escrow_account_id', accountId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }
 
 // Check if all release conditions are met
@@ -398,7 +437,6 @@ export async function autoReleaseIfConditionsMet(accountId: string): Promise<boo
   const conditionsMet = await checkReleaseConditions(accountId);
   if (!conditionsMet) return false;
 
-  // Auto-release all available funds
   if (account.available_balance > 0) {
     await releaseEscrowFunds(
       accountId,
@@ -417,7 +455,7 @@ export async function disputeEscrowAccount(accountId: string, reason: string): P
   const { error } = await supabase
     .from('escrow_accounts')
     .update({
-      status: 'disputed',
+      status: 'disputed' as EscrowStatus,
       admin_notes: reason,
       updated_at: new Date().toISOString()
     })
@@ -431,7 +469,6 @@ export async function cancelEscrowAccount(accountId: string, reason: string): Pr
   const account = await getEscrowAccount(accountId);
   if (!account) throw new Error('Escrow account not found');
 
-  // Refund any available funds to investor
   if (account.available_balance > 0) {
     await releaseEscrowFunds(
       accountId,
@@ -444,7 +481,7 @@ export async function cancelEscrowAccount(accountId: string, reason: string): Pr
   const { error } = await supabase
     .from('escrow_accounts')
     .update({
-      status: 'cancelled',
+      status: 'cancelled' as EscrowStatus,
       admin_notes: reason,
       updated_at: new Date().toISOString()
     })
@@ -472,7 +509,6 @@ export async function getEscrowStats(userId: string, role: 'investor' | 'entrepr
 
 // Calculate escrow fees
 export function calculateEscrowFee(amount: number, currency: string): number {
-  // Standard escrow fee: 1% of amount, minimum $10, maximum $500
   const feePercentage = 0.01;
   const minFee = 10;
   const maxFee = 500;

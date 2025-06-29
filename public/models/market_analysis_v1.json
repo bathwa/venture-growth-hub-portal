@@ -1,0 +1,55 @@
+
+{
+  "modelTopology": {
+    "class_name": "Sequential",
+    "config": {
+      "name": "market_analysis_model",
+      "layers": [
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 48,
+            "activation": "relu",
+            "input_shape": [8]
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 24,
+            "activation": "relu"
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 12,
+            "activation": "relu"
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
+            "units": 1,
+            "activation": "sigmoid"
+          }
+        }
+      ]
+    }
+  },
+  "weightsManifest": [
+    {
+      "paths": ["market_analysis_weights.bin"],
+      "weights": [
+        {"name": "dense/kernel", "shape": [8, 48], "dtype": "float32"},
+        {"name": "dense/bias", "shape": [48], "dtype": "float32"},
+        {"name": "dense_1/kernel", "shape": [48, 24], "dtype": "float32"},
+        {"name": "dense_1/bias", "shape": [24], "dtype": "float32"},
+        {"name": "dense_2/kernel", "shape": [24, 12], "dtype": "float32"},
+        {"name": "dense_2/bias", "shape": [12], "dtype": "float32"},
+        {"name": "dense_3/kernel", "shape": [12, 1], "dtype": "float32"},
+        {"name": "dense_3/bias", "shape": [1], "dtype": "float32"}
+      ]
+    }
+  ]
+}

@@ -1,48 +1,43 @@
 
+// Notification Management System
+// Handles user notifications and system alerts
+
 import { supabase } from '@/integrations/supabase/client';
+
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'investment' | 'opportunity' | 'milestone' | 'payment' | 'document' | 'system';
+export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type NotificationStatus = 'unread' | 'read' | 'archived';
 
 export interface Notification {
   id: string;
   user_id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'investment' | 'opportunity' | 'milestone' | 'payment' | 'document' | 'system';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  is_read: boolean;
-  action_url?: string;
-  action_text?: string;
+  type: NotificationType;
+  priority: NotificationPriority;
+  status: NotificationStatus;
   action_required: boolean;
-  expires_at?: Date;
-  created_at: Date;
-  read_at?: Date;
+  action_text?: string;
+  action_url?: string;
   data?: any;
   metadata?: any;
-}
-
-export interface NotificationStats {
-  total: number;
-  unread: number;
-  read: number;
-  archived: number;
-  byType: Record<string, number>;
-  byPriority: Record<string, number>;
-  actionRequired: number;
+  is_read: boolean;
+  created_at: string;
+  read_at?: string;
+  expires_at?: string;
 }
 
 export interface NotificationPreferences {
-  email_enabled: boolean;
-  push_enabled: boolean;
-  sms_enabled: boolean;
-  in_app_enabled: boolean;
-  quiet_hours: {
-    enabled: boolean;
-    start_time: string;
-    end_time: string;
-  };
+  email_notifications: boolean;
+  push_notifications: boolean;
+  investment_updates: boolean;
+  milestone_alerts: boolean;
+  payment_notifications: boolean;
+  system_announcements: boolean;
 }
 
-export const getNotifications = async (userId: string, limit = 20): Promise<Notification[]> => {
-  try {
+class NotificationService {
+  async getNotifications(userId: string, limit = 50): Promise<Notification[]> {
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -51,134 +46,240 @@ export const getNotifications = async (userId: string, limit = 20): Promise<Noti
       .limit(limit);
 
     if (error) throw error;
-
-    return data?.map(notification => ({
-      ...notification,
-      created_at: new Date(notification.created_at),
-      read_at: notification.read_at ? new Date(notification.read_at) : undefined,
-      expires_at: notification.expires_at ? new Date(notification.expires_at) : undefined
-    })) || [];
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return [];
+    return data as Notification[];
   }
-};
 
-export const getNotificationStats = async (userId: string): Promise<NotificationStats> => {
-  try {
-    const { data, error } = await supabase
+  async getUnreadCount(userId: string): Promise<number> {
+    const { count, error } = await supabase
       .from('notifications')
-      .select('*')
-      .eq('user_id', userId);
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
 
     if (error) throw error;
-
-    const notifications = data || [];
-    
-    return {
-      total: notifications.length,
-      unread: notifications.filter(n => !n.is_read).length,
-      read: notifications.filter(n => n.is_read).length,
-      archived: 0, // Not implemented yet
-      byType: {},
-      byPriority: {},
-      actionRequired: notifications.filter(n => n.action_required).length
-    };
-  } catch (error) {
-    console.error('Error fetching notification stats:', error);
-    return { total: 0, unread: 0, read: 0, archived: 0, byType: {}, byPriority: {}, actionRequired: 0 };
+    return count || 0;
   }
-};
 
-export const markAsRead = async (notificationId: string): Promise<void> => {
-  try {
+  async markAsRead(notificationId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
       .update({ 
         is_read: true, 
+        status: 'read' as NotificationStatus,
         read_at: new Date().toISOString() 
       })
       .eq('id', notificationId);
 
     if (error) throw error;
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
   }
-};
 
-export const createNotification = async (notification: Omit<Notification, 'id' | 'created_at' | 'is_read' | 'read_at'>): Promise<void> => {
-  try {
+  async markAllAsRead(userId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
-      .insert({
-        ...notification,
-        expires_at: notification.expires_at?.toISOString(),
-        is_read: false
-      });
+      .update({ 
+        is_read: true, 
+        status: 'read' as NotificationStatus,
+        read_at: new Date().toISOString() 
+      })
+      .eq('user_id', userId)
+      .eq('is_read', false);
 
     if (error) throw error;
-  } catch (error) {
-    console.error('Error creating notification:', error);
   }
-};
 
-export const notificationManager = {
-  getUserNotifications: getNotifications,
-  getNotificationStats,
-  getPreferences: async (userId: string): Promise<NotificationPreferences> => {
-    // Return default preferences for now
-    return {
-      email_enabled: true,
-      push_enabled: true,
-      sms_enabled: false,
-      in_app_enabled: true,
-      quiet_hours: {
-        enabled: false,
-        start_time: '22:00',
-        end_time: '08:00'
-      }
-    };
-  },
-  markAsRead: async (notificationId: string, userId: string) => {
-    return markAsRead(notificationId);
-  },
-  markAllAsRead: async (userId: string, type?: string) => {
-    try {
-      let query = supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('is_read', false);
+  async createNotification(notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<Notification> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: notification.user_id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        priority: notification.priority || 'medium',
+        status: notification.status || 'unread',
+        action_required: notification.action_required || false,
+        action_text: notification.action_text,
+        action_url: notification.action_url,
+        data: notification.data,
+        metadata: notification.metadata,
+        is_read: false,
+        expires_at: notification.expires_at
+      })
+      .select()
+      .single();
 
-      if (type) {
-        query = query.eq('type', type);
-      }
-
-      const { error } = await query;
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  },
-  archiveNotification: async (notificationId: string, userId: string) => {
-    // For now, just mark as read since we don't have archived status
-    return markAsRead(notificationId);
-  },
-  deleteNotification: async (notificationId: string, userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
-  },
-  updatePreferences: async (userId: string, preferences: NotificationPreferences) => {
-    // For now, just return the preferences since we don't have a preferences table
-    return preferences;
+    if (error) throw error;
+    return data as Notification;
   }
-};
+
+  async deleteNotification(notificationId: string): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+
+    if (error) throw error;
+  }
+
+  async getNotificationsByType(userId: string, type: NotificationType): Promise<Notification[]> {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('type', type)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Notification[];
+  }
+}
+
+export const notificationService = new NotificationService();
+
+// Utility functions for creating specific notification types
+export async function createInvestmentNotification(
+  userId: string,
+  title: string,
+  message: string,
+  investmentId: string,
+  actionUrl?: string
+): Promise<Notification> {
+  return notificationService.createNotification({
+    user_id: userId,
+    title,
+    message,
+    type: 'investment',
+    priority: 'medium',
+    status: 'unread',
+    action_required: !!actionUrl,
+    action_text: actionUrl ? 'View Investment' : undefined,
+    action_url: actionUrl,
+    data: { investment_id: investmentId },
+    metadata: { entity_type: 'investment', entity_id: investmentId }
+  });
+}
+
+export async function createOpportunityNotification(
+  userId: string,
+  title: string,
+  message: string,
+  opportunityId: string,
+  actionUrl?: string
+): Promise<Notification> {
+  return notificationService.createNotification({
+    user_id: userId,
+    title,
+    message,
+    type: 'opportunity',
+    priority: 'medium',
+    status: 'unread',
+    action_required: !!actionUrl,
+    action_text: actionUrl ? 'View Opportunity' : undefined,
+    action_url: actionUrl,
+    data: { opportunity_id: opportunityId },
+    metadata: { entity_type: 'opportunity', entity_id: opportunityId }
+  });
+}
+
+export async function createMilestoneNotification(
+  userId: string,
+  title: string,
+  message: string,
+  milestoneId: string,
+  actionUrl?: string
+): Promise<Notification> {
+  return notificationService.createNotification({
+    user_id: userId,
+    title,
+    message,
+    type: 'milestone',
+    priority: 'high',
+    status: 'unread',
+    action_required: !!actionUrl,
+    action_text: actionUrl ? 'View Milestone' : undefined,
+    action_url: actionUrl,
+    data: { milestone_id: milestoneId },
+    metadata: { entity_type: 'milestone', entity_id: milestoneId }
+  });
+}
+
+export async function createPaymentNotification(
+  userId: string,
+  title: string,
+  message: string,
+  paymentId: string,
+  actionUrl?: string
+): Promise<Notification> {
+  return notificationService.createNotification({
+    user_id: userId,
+    title,
+    message,
+    type: 'payment',
+    priority: 'high',
+    status: 'unread',
+    action_required: !!actionUrl,
+    action_text: actionUrl ? 'View Payment' : undefined,
+    action_url: actionUrl,
+    data: { payment_id: paymentId },
+    metadata: { entity_type: 'payment', entity_id: paymentId }
+  });
+}
+
+export async function createSystemNotification(
+  userId: string,
+  title: string,
+  message: string,
+  priority: NotificationPriority = 'medium'
+): Promise<Notification> {
+  return notificationService.createNotification({
+    user_id: userId,
+    title,
+    message,
+    type: 'system',
+    priority,
+    status: 'unread',
+    action_required: false,
+    metadata: { system_notification: true }
+  });
+}
+
+// Bulk notification functions
+export async function notifyInvestorsOfOpportunity(
+  opportunityId: string,
+  title: string,
+  message: string
+): Promise<void> {
+  // This would typically get a list of relevant investors
+  // For now, we'll implement a basic version
+  console.log(`Notifying investors about opportunity ${opportunityId}: ${title}`);
+}
+
+export async function notifyEntrepreneurOfInvestment(
+  entrepreneurId: string,
+  investmentId: string,
+  investorName: string,
+  amount: number
+): Promise<void> {
+  await createInvestmentNotification(
+    entrepreneurId,
+    'New Investment Received',
+    `${investorName} has invested $${amount.toLocaleString()} in your opportunity.`,
+    investmentId,
+    `/entrepreneur/investments/${investmentId}`
+  );
+}
+
+export async function notifyInvestorOfMilestone(
+  investorId: string,
+  milestoneId: string,
+  opportunityTitle: string,
+  milestoneTitle: string
+): Promise<void> {
+  await createMilestoneNotification(
+    investorId,
+    'Milestone Update',
+    `New milestone "${milestoneTitle}" completed for ${opportunityTitle}.`,
+    milestoneId,
+    `/investor/investments/milestones/${milestoneId}`
+  );
+}
