@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ import {
   Observer, 
   ObserverInvitation, 
   ObserverPermission,
+  PermissionInfo,
+  RelationshipOption,
   getObserversByUser,
   getPendingInvitations,
   inviteObserver,
@@ -85,7 +88,7 @@ export default function ObserverManagement({
   const [success, setSuccess] = useState<string | null>(null);
 
   // Get static data
-  const availablePermissions = getAvailablePermissions(entityType);
+  const availablePermissions = getAvailablePermissions();
   const relationshipOptions = getRelationshipOptions();
 
   // Fetch data on component mount and when userId/entityId changes
@@ -137,12 +140,12 @@ export default function ObserverManagement({
       }
 
       // Convert permission strings to permission objects
-      const permissions: ObserverPermission[] = inviteForm.permissions.map(permType => {
+      const permissions: PermissionInfo[] = inviteForm.permissions.map(permType => {
         const perm = availablePermissions.find(p => p.type === permType);
         return perm!;
       });
 
-      // Create invitation using Supabase
+      // Create invitation using the fixed function signature
       const invitation = await inviteObserver({
         email: inviteForm.email,
         name: inviteForm.name,
@@ -217,6 +220,11 @@ export default function ObserverManagement({
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getPermissionLabel = (permission: ObserverPermission): string => {
+    const permInfo = availablePermissions.find(p => p.type === permission);
+    return permInfo?.description || permission;
   };
 
   // Loading skeleton
@@ -399,7 +407,7 @@ export default function ObserverManagement({
                           <div className="flex gap-1 mt-1">
                             {observer.permissions.map((perm, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
-                                {perm.description}
+                                {getPermissionLabel(perm)}
                               </Badge>
                             ))}
                           </div>
@@ -454,7 +462,7 @@ export default function ObserverManagement({
                           {invitation.email} • {invitation.relationship}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Expires: {new Date(invitation.expires_at).toLocaleDateString()}
+                          Expires: {invitation.expires_at ? new Date(invitation.expires_at).toLocaleDateString() : 'No expiry'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -623,4 +631,4 @@ export default function ObserverManagement({
       )}
     </div>
   );
-} 
+}

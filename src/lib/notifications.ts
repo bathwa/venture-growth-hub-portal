@@ -1,3 +1,4 @@
+
 // Notification Management System
 // Handles notification creation, delivery, and user preferences
 
@@ -67,11 +68,14 @@ class NotificationManager {
     expires_at?: string;
   }): Promise<Notification> {
     try {
+      // Map investment type to valid database enum
+      const validType = data.type === 'investment' ? 'payment' : data.type;
+      
       const notification = {
         user_id: data.user_id,
         title: data.title,
         message: data.message,
-        type: data.type,
+        type: validType,
         priority: data.priority || 'medium' as NotificationPriority,
         status: 'unread' as NotificationStatus,
         action_url: data.action_url,
@@ -120,7 +124,9 @@ class NotificationManager {
       }
 
       if (options?.type) {
-        query = query.eq('type', options.type);
+        // Map investment type to valid database enum for queries
+        const validType = options.type === 'investment' ? 'payment' : options.type;
+        query = query.eq('type', validType);
       }
 
       if (options?.priority) {

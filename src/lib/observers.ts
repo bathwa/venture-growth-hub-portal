@@ -35,6 +35,16 @@ export interface ObserverInvitation {
   token: string;
 }
 
+export interface PermissionInfo {
+  type: string;
+  description: string;
+}
+
+export interface RelationshipOption {
+  value: string;
+  label: string;
+}
+
 // Mock data for observers
 const mockObservers: Observer[] = [
   {
@@ -55,9 +65,16 @@ const mockObservers: Observer[] = [
   }
 ];
 
-export const getObserversByUser = async (userId: string): Promise<Observer[]> => {
-  console.log('Mock: Getting observers for user', userId);
+const mockInvitations: ObserverInvitation[] = [];
+
+export const getObserversByUser = async (userId: string, entityId?: string, entityType?: string): Promise<Observer[]> => {
+  console.log('Mock: Getting observers for user', userId, 'entity', entityId, entityType);
   return mockObservers.filter(observer => observer.granted_by === userId);
+};
+
+export const getPendingInvitations = async (userId: string, entityId?: string, entityType?: string): Promise<ObserverInvitation[]> => {
+  console.log('Mock: Getting pending invitations for user', userId, 'entity', entityId, entityType);
+  return mockInvitations.filter(inv => inv.invited_by === userId && inv.status === 'pending');
 };
 
 export const getObserverByEmail = async (email: string): Promise<Observer | null> => {
@@ -69,62 +86,73 @@ export const inviteObserver = async (
   invitationData: {
     name: string;
     email: string;
-    entity_id: string;
-    entity_type: string;
+    entityId: string;
+    entityType: string;
     relationship?: string;
-    permissions: ObserverPermission[];
-    expires_at?: string;
-  },
-  invitedBy: string
+    permissions: PermissionInfo[];
+    inviterId: string;
+  }
 ): Promise<ObserverInvitation> => {
-  console.log('Mock: Inviting observer', invitationData, 'by', invitedBy);
+  console.log('Mock: Inviting observer', invitationData);
   
   const invitation: ObserverInvitation = {
     id: `inv-${Date.now()}`,
     name: invitationData.name,
     email: invitationData.email,
-    entity_id: invitationData.entity_id,
-    entity_type: invitationData.entity_type,
+    entity_id: invitationData.entityId,
+    entity_type: invitationData.entityType,
     relationship: invitationData.relationship,
     permissions: invitationData.permissions,
     status: 'pending',
-    expires_at: invitationData.expires_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    invited_by: invitedBy,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    invited_by: invitationData.inviterId,
     invited_at: new Date().toISOString(),
     token: `token-${Date.now()}`
   };
 
+  mockInvitations.push(invitation);
   return invitation;
 };
 
-export const revokeObserver = async (observerId: string): Promise<void> => {
-  console.log('Mock: Revoking observer access', observerId);
+export const revokeObserver = async (observerId: string, userId: string): Promise<void> => {
+  console.log('Mock: Revoking observer access', observerId, 'by user', userId);
   const index = mockObservers.findIndex(obs => obs.id === observerId);
   if (index > -1) {
     mockObservers[index].status = 'revoked';
   }
 };
 
-export const getAvailablePermissions = (): ObserverPermission[] => {
-  return ['read', 'comment', 'download'];
+export const getAvailablePermissions = (entityType?: string): PermissionInfo[] => {
+  return [
+    { type: 'read', description: 'View documents and information' },
+    { type: 'comment', description: 'Add comments and feedback' },
+    { type: 'download', description: 'Download documents' }
+  ];
 };
 
-export const getRelationshipOptions = (): string[] => {
-  return ['advisor', 'investor', 'mentor', 'partner', 'consultant', 'other'];
+export const getRelationshipOptions = (): RelationshipOption[] => {
+  return [
+    { value: 'advisor', label: 'Advisor' },
+    { value: 'investor', label: 'Investor' },
+    { value: 'mentor', label: 'Mentor' },
+    { value: 'partner', label: 'Partner' },
+    { value: 'consultant', label: 'Consultant' },  
+    { value: 'other', label: 'Other' }
+  ];
 };
 
-export const getObserverStats = async (userId: string): Promise<{
-  total: number;
-  active: number;
-  pending: number;
-  expired: number;
+export const getObserverStats = async (userId: string, entityId?: string, entityType?: string): Promise<{
+  totalObservers: number;
+  activeObservers: number;
+  pendingInvitations: number;
+  revokedObservers: number;
 }> => {
-  console.log('Mock: Getting observer stats for', userId);
+  console.log('Mock: Getting observer stats for', userId, 'entity', entityId, entityType);
   return {
-    total: mockObservers.length,
-    active: mockObservers.filter(obs => obs.status === 'active').length,
-    pending: mockObservers.filter(obs => obs.status === 'pending').length,
-    expired: mockObservers.filter(obs => obs.status === 'expired').length
+    totalObservers: mockObservers.length,
+    activeObservers: mockObservers.filter(obs => obs.status === 'active').length,
+    pendingInvitations: mockInvitations.filter(inv => inv.status === 'pending').length,
+    revokedObservers: mockObservers.filter(obs => obs.status === 'revoked').length
   };
 };
 

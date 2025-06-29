@@ -1,6 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+export type AgreementType = 'nda' | 'investment_agreement' | 'service_agreement' | 'partnership_agreement' | 'escrow_agreement';
+
 export interface Agreement {
   id: string;
   agreement_type: string;
@@ -12,6 +14,17 @@ export interface Agreement {
   signed_at?: string;
   expires_at?: string;
   metadata: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgreementTemplate {
+  id: string;
+  name: string;
+  agreement_type: AgreementType;
+  content: string;
+  variables: string[];
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

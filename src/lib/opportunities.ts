@@ -1,449 +1,226 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { DRBE, OpportunityType, OpportunityStatus } from '@/lib/drbe';
-import { getRiskScore } from '@/lib/ai';
 
 export interface Opportunity {
   id: string;
+  entrepreneur_id: string;
   title: string;
   description: string;
-  type: OpportunityType;
-  status: OpportunityStatus;
-  equity_offered?: string;
-  order_details?: string;
-  partner_roles?: string;
-  target_amount: number;
-  currency: string;
-  location: string;
   industry: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  attachments: string[];
-  risk_score?: number;
+  location: string;
+  target_amount: number;
+  equity_offered: number;
+  min_investment: number;
+  max_investment?: number;
+  funding_type: string;
+  business_stage: string;
+  status: 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled';
+  use_of_funds?: string;
+  website?: string;
+  linkedin?: string;
+  pitch_deck_url?: string;
   views: number;
   interested_investors: number;
+  total_raised: number;
+  risk_score?: number;
+  expected_return?: number;
+  timeline?: number;
+  team_size?: number;
+  founded_year?: number;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+  published_at?: string;
+  closed_at?: string;
 }
 
-export interface CreateOpportunityData {
+export interface CreateOpportunityData extends Partial<Opportunity> {
+  entrepreneur_id: string;
   title: string;
   description: string;
-  type: OpportunityType;
-  equity_offered?: string;
-  order_details?: string;
-  partner_roles?: string;
-  target_amount: number;
-  currency: string;
-  location: string;
   industry: string;
-  created_by: string;
-  attachments?: File[];
+  location: string;
+  target_amount: number;
+  equity_offered: number;
+  min_investment: number;
+  max_investment?: number;
+  funding_type: string;
+  business_stage: string;
+  status: string;
+  use_of_funds?: string;
+  website?: string;
+  linkedin?: string;
+  pitch_deck_url?: string;
+  views?: number;
+  interested_investors?: number;
+  total_raised?: number;
+  risk_score?: number;
+  expected_return?: number;
+  timeline?: number;
+  team_size?: number;
+  founded_year?: number;
+  tags?: string[];
+  type?: string;
+  currency?: string;
+  created_by?: string;
 }
 
-// Database status mapping
-const mapStatusToDatabase = (status: OpportunityStatus): string => {
-  switch (status) {
-    case 'under_review':
-      return 'pending'; // Map to valid database enum
-    default:
-      return status;
-  }
+export const mapStatusToDb = (status: string): string => {
+  const statusMap: { [key: string]: string } = {
+    'under_review': 'pending',
+    'reviewing': 'pending',
+    'draft': 'draft',
+    'pending': 'pending', 
+    'published': 'published',
+    'funded': 'funded',
+    'closed': 'closed',
+    'cancelled': 'cancelled'
+  };
+  return statusMap[status] || 'draft';
 };
 
-const mapStatusFromDatabase = (status: string): OpportunityStatus => {
-  // Map database statuses back to our interface
-  return status as OpportunityStatus;
+export const validateOpportunity = (data: CreateOpportunityData): boolean => {
+  if (!data.entrepreneur_id) return false;
+  if (!data.title) return false;
+  if (!data.description) return false;
+  if (!data.industry) return false;
+  if (!data.location) return false;
+  if (!data.target_amount || data.target_amount <= 0) return false;
+  if (!data.equity_offered || data.equity_offered <= 0) return false;
+  if (!data.min_investment || data.min_investment <= 0) return false;
+  if (!data.funding_type) return false;
+  if (!data.business_stage) return false;
+  if (!data.status) return false;
+  return true;
 };
 
-export class OpportunityService {
-  static async createOpportunity(data: CreateOpportunityData): Promise<Opportunity> {
-    try {
-      // DRBE validation with mock id for validation
-      const opportunity = {
-        id: 'temp-id', // Add temporary id for validation
-        title: data.title,
-        type: data.type,
-        status: 'draft' as OpportunityStatus,
-        fields: {
-          equity_offered: data.equity_offered,
-          order_details: data.order_details,
-          partner_roles: data.partner_roles,
-        },
-      };
-
-      const { valid, errors } = DRBE.validateOpportunity(opportunity);
-      if (!valid) {
-        throw new Error(`Validation failed: ${errors.join(', ')}`);
-      }
-
-      // AI risk scoring
-      let riskScore: number | undefined;
-      try {
-        const input = [parseFloat(data.equity_offered || '0')];
-        const score = await getRiskScore(input);
-        riskScore = DRBE.validateAIOutput('risk_score', score);
-      } catch (e) {
-        console.warn('AI risk scoring failed:', e);
-      }
-
-      // Upload attachments
-      const uploadedPaths: string[] = [];
-      if (data.attachments) {
-        for (const file of data.attachments) {
-          const path = await this.uploadFile(file, data.created_by);
-          if (path) uploadedPaths.push(path);
-        }
-      }
-
-      // Create opportunity in database - using database schema fields
-      const { data: opportunityData, error } = await supabase
-        .from('opportunities')
-        .insert({
-          title: data.title,
-          description: data.description,
-          entrepreneur_id: data.created_by,
-          target_amount: data.target_amount,
-          equity_offered: parseFloat(data.equity_offered || '0'),
-          min_investment: 1000, // Default minimum investment
-          funding_type: 'equity',
-          business_stage: 'startup',
-          industry: data.industry,
-          location: data.location,
-          status: 'draft', // Use valid database enum
-          views: 0,
-          interested_investors: 0,
-          risk_score: riskScore
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Map database result to our interface
-      return {
-        id: opportunityData.id,
-        title: opportunityData.title,
-        description: opportunityData.description,
-        type: data.type,
-        status: mapStatusFromDatabase(opportunityData.status),
-        equity_offered: data.equity_offered,
-        order_details: data.order_details,
-        partner_roles: data.partner_roles,
-        target_amount: opportunityData.target_amount,
-        currency: 'USD', // Default currency
-        location: opportunityData.location,
-        industry: opportunityData.industry,
-        created_by: opportunityData.entrepreneur_id,
-        created_at: opportunityData.created_at,
-        updated_at: opportunityData.updated_at,
-        attachments: uploadedPaths,
-        risk_score: opportunityData.risk_score,
-        views: opportunityData.views || 0,
-        interested_investors: opportunityData.interested_investors || 0
-      };
-    } catch (error) {
-      console.error('Create opportunity error:', error);
-      throw error;
-    }
-  }
-
-  static async getOpportunities(userId: string): Promise<Opportunity[]> {
-    try {
-      const { data, error } = await supabase
-        .from('opportunities')
-        .select('*')
-        .eq('entrepreneur_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      // Map database results to our interface
-      return (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        type: 'going_concern' as OpportunityType, // Default type
-        status: item.status as OpportunityStatus,
-        equity_offered: item.equity_offered?.toString(),
-        target_amount: item.target_amount,
-        currency: 'USD',
-        location: item.location,
-        industry: item.industry,
-        created_by: item.entrepreneur_id,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        attachments: [],
-        risk_score: item.risk_score,
-        views: item.views || 0,
-        interested_investors: item.interested_investors || 0
-      }));
-    } catch (error) {
-      console.error('Get opportunities error:', error);
-      throw error;
-    }
-  }
-
-  static async getOpportunity(id: string): Promise<Opportunity | null> {
-    try {
-      const { data, error } = await supabase
-        .from('opportunities')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) return null;
-
-      // Map database result to our interface
-      return {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        type: 'going_concern' as OpportunityType,
-        status: data.status as OpportunityStatus,
-        equity_offered: data.equity_offered?.toString(),
-        target_amount: data.target_amount,
-        currency: 'USD',
-        location: data.location,
-        industry: data.industry,
-        created_by: data.entrepreneur_id,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        attachments: [],
-        risk_score: data.risk_score,
-        views: data.views || 0,
-        interested_investors: data.interested_investors || 0
-      };
-    } catch (error) {
-      console.error('Get opportunity error:', error);
-      throw error;
-    }
-  }
-
-  static async updateOpportunity(id: string, updates: Partial<Opportunity>): Promise<Opportunity> {
-    try {
-      // DRBE validation if type or fields changed
-      if (updates.type || updates.equity_offered || updates.order_details || updates.partner_roles) {
-        const opportunity = {
-          id,
-          title: updates.title || '',
-          type: updates.type || 'going_concern',
-          status: updates.status || 'draft',
-          fields: {
-            equity_offered: updates.equity_offered,
-            order_details: updates.order_details,
-            partner_roles: updates.partner_roles,
-          },
-        };
-
-        const { valid, errors } = DRBE.validateOpportunity(opportunity);
-        if (!valid) {
-          throw new Error(`Validation failed: ${errors.join(', ')}`);
-        }
-      }
-
-      // AI risk scoring if equity_offered changed
-      if (updates.equity_offered) {
-        try {
-          const input = [parseFloat(updates.equity_offered)];
-          const score = await getRiskScore(input);
-          updates.risk_score = DRBE.validateAIOutput('risk_score', score);
-        } catch (e) {
-          console.warn('AI risk scoring failed:', e);
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('opportunities')
-        .update({
-          title: updates.title,
-          description: updates.description,
-          equity_offered: updates.equity_offered ? parseFloat(updates.equity_offered) : undefined,
-          target_amount: updates.target_amount,
-          industry: updates.industry,
-          location: updates.location,
-          status: updates.status ? mapStatusToDatabase(updates.status) : undefined,
-          risk_score: updates.risk_score,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Map back to our interface
-      return {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        type: 'going_concern' as OpportunityType,
-        status: mapStatusFromDatabase(data.status),
-        equity_offered: data.equity_offered?.toString(),
-        target_amount: data.target_amount,
-        currency: 'USD',
-        location: data.location,
-        industry: data.industry,
-        created_by: data.entrepreneur_id,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        attachments: [],
-        risk_score: data.risk_score,
-        views: data.views || 0,
-        interested_investors: data.interested_investors || 0
-      };
-    } catch (error) {
-      console.error('Update opportunity error:', error);
-      throw error;
-    }
-  }
-
-  static async deleteOpportunity(id: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Delete opportunity error:', error);
-      throw error;
-    }
-  }
-
-  static async updateStatus(id: string, status: OpportunityStatus): Promise<Opportunity> {
-    try {
-      const { data, error } = await supabase
-        .from('opportunities')
-        .update({ 
-          status: mapStatusToDatabase(status), 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      return this.getOpportunity(id).then(opp => opp!);
-    } catch (error) {
-      console.error('Update status error:', error);
-      throw error;
-    }
-  }
-
-  static async incrementViews(id: string): Promise<void> {
-    try {
-      // First get current views count
-      const { data: current, error: getError } = await supabase
-        .from('opportunities')
-        .select('views')
-        .eq('id', id)
-        .single();
-
-      if (getError) {
-        throw getError;
-      }
-
-      // Increment and update
-      const newViews = (current?.views || 0) + 1;
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ 
-          views: newViews,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Increment views error:', error);
-      throw error;
-    }
-  }
-
-  static async uploadFile(file: File, userId: string): Promise<string | null> {
-    try {
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const filePath = `${userId}/opportunities/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('opportunity-files')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      return filePath;
-    } catch (error) {
-      console.error('File upload error:', error);
-      return null;
-    }
-  }
-
-  static async deleteFile(filePath: string): Promise<void> {
-    try {
-      const { error } = await supabase.storage
-        .from('opportunity-files')
-        .remove([filePath]);
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('File deletion error:', error);
-      throw error;
-    }
-  }
-
-  static getFileUrl(filePath: string): string {
-    const { data } = supabase.storage
-      .from('opportunity-files')
-      .getPublicUrl(filePath);
+export const createOpportunity = async (opportunityData: CreateOpportunityData): Promise<Opportunity> => {
+  try {
+    console.log('Creating opportunity with data:', opportunityData);
     
-    return data.publicUrl;
-  }
+    // Add missing fields for CreateOpportunityData compatibility
+    const completeData = {
+      ...opportunityData,
+      type: opportunityData.type || 'standard',
+      currency: opportunityData.currency || 'USD',
+      created_by: opportunityData.created_by || opportunityData.entrepreneur_id,
+      status: mapStatusToDb(opportunityData.status || 'draft')
+    };
 
-  static validateFile(file: File): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    const allowedTypes = [
-      'application/pdf', 
-      'image/jpeg', 
-      'image/png', 
-      'application/msword', 
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
+    const { data, error } = await supabase
+      .from('opportunities')
+      .insert(completeData)
+      .select()
+      .single();
 
-    if (file.size > maxSize) {
-      errors.push(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
     }
 
-    if (!allowedTypes.includes(file.type)) {
-      errors.push(`File type ${file.type} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
+    console.log('Opportunity created successfully:', data);
+    return data as Opportunity;
+  } catch (error) {
+    console.error('Create opportunity error:', error);
+    throw error;
+  }
+};
+
+export const getOpportunities = async (): Promise<Opportunity[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as Opportunity[];
+  } catch (error) {
+    console.error('Get opportunities error:', error);
+    return [];
+  }
+};
+
+export const getOpportunity = async (id: string): Promise<Opportunity | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data as Opportunity;
+  } catch (error) {
+    console.error('Get opportunity error:', error);
+    return null;
+  }
+};
+
+export const updateOpportunity = async (id: string, updates: Partial<Opportunity>): Promise<Opportunity> => {
+  try {
+    // Map status to database enum if provided
+    const dbUpdates = { ...updates };
+    if (dbUpdates.status) {
+      dbUpdates.status = mapStatusToDb(dbUpdates.status);
     }
 
-    return { valid: errors.length === 0, errors };
+    const { data, error } = await supabase
+      .from('opportunities')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Opportunity;
+  } catch (error) {
+    console.error('Update opportunity error:', error);
+    throw error;
   }
-}
+};
+
+export const deleteOpportunity = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('opportunities')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Delete opportunity error:', error);
+    throw error;
+  }
+};
+
+export const publishOpportunity = async (id: string): Promise<Opportunity> => {
+  try {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .update({ 
+        status: 'published',
+        published_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Opportunity;
+  } catch (error) {
+    console.error('Publish opportunity error:', error);
+    throw error;
+  }
+};
+
+export const incrementViews = async (id: string): Promise<void> => {
+  try {
+    // Use a simple update instead of RPC since we don't have the increment function
+    const opportunity = await getOpportunity(id);
+    if (opportunity) {
+      await updateOpportunity(id, { views: (opportunity.views || 0) + 1 });
+    }
+  } catch (error) {
+    console.error('Increment views error:', error);
+  }
+};
