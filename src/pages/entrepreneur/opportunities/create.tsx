@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,9 +70,10 @@ const CreateOpportunity = () => {
         target_amount: parseFloat(formData.target_amount),
         equity_offered: parseFloat(formData.equity_offered),
         min_investment: parseFloat(formData.min_investment),
-        expected_return: parseFloat(formData.expected_return),
-        team_size: parseInt(formData.team_size),
-        founded_year: parseInt(formData.founded_year),
+        expected_return: parseFloat(formData.expected_return) || 0,
+        timeline: parseInt(formData.timeline) || 0,
+        team_size: parseInt(formData.team_size) || 0,
+        founded_year: parseInt(formData.founded_year) || 0,
         status: 'draft' as const
       };
 

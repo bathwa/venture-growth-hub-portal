@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -46,34 +47,36 @@ const ObserverDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [availablePermissions, setAvailablePermissions] = useState<PermissionInfo[]>([]);
   const [relationshipOptions, setRelationshipOptions] = useState<RelationshipOption[]>([]);
-	const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [date, setDate] = React.useState<Date | undefined>(new Date())
 
   useEffect(() => {
     if (!user) return;
 
-    getObserversByUser(user.id)
-      .then(setObservers)
-      .catch(error => console.error('Error fetching observers:', error));
+    const fetchData = async () => {
+      try {
+        const [observersData, invitationsData, statsData, accessLogData] = await Promise.all([
+          getObserversByUser(user.id),
+          getPendingInvitations(user.id),
+          getObserverStats(user.id),
+          getObserverAccessLog(user.id)
+        ]);
 
-    getPendingInvitations(user.id)
-      .then(setInvitations)
-      .catch(error => console.error('Error fetching invitations:', error));
+        setObservers(observersData);
+        setInvitations(invitationsData);
+        setStats(statsData);
+        setAccessLog(accessLogData);
 
-    getObserverStats(user.id)
-      .then(setStats)
-      .catch(error => console.error('Error fetching stats:', error));
+        // Set permissions and relationship options directly
+        const permissions = await getAvailablePermissions();
+        const relationships = await getRelationshipOptions();
+        setAvailablePermissions(permissions);
+        setRelationshipOptions(relationships);
+      } catch (error) {
+        console.error('Error fetching observer data:', error);
+      }
+    };
 
-    getObserverAccessLog(user.id)
-      .then(setAccessLog)
-      .catch(error => console.error('Error fetching access log:', error));
-
-    getAvailablePermissions()
-      .then(setAvailablePermissions)
-      .catch(error => console.error('Error fetching available permissions:', error));
-
-    getRelationshipOptions()
-      .then(setRelationshipOptions)
-      .catch(error => console.error('Error fetching relationship options:', error));
+    fetchData();
   }, [user]);
 
   useEffect(() => {
