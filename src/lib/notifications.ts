@@ -1,4 +1,3 @@
-
 // Notification Management System
 // Handles notification creation, delivery, and user preferences
 
@@ -309,6 +308,9 @@ class NotificationManager {
     });
   }
 }
+
+// Export the class as NotificationService for backward compatibility
+export const NotificationService = NotificationManager;
 
 export const notificationManager = new NotificationManager();
 

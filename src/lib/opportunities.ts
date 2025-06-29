@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DRBE, OpportunityType, OpportunityStatus } from '@/lib/drbe';
 import { getRiskScore } from '@/lib/ai';
@@ -38,6 +39,21 @@ export interface CreateOpportunityData {
   created_by: string;
   attachments?: File[];
 }
+
+// Database status mapping
+const mapStatusToDatabase = (status: OpportunityStatus): string => {
+  switch (status) {
+    case 'under_review':
+      return 'pending'; // Map to valid database enum
+    default:
+      return status;
+  }
+};
+
+const mapStatusFromDatabase = (status: string): OpportunityStatus => {
+  // Map database statuses back to our interface
+  return status as OpportunityStatus;
+};
 
 export class OpportunityService {
   static async createOpportunity(data: CreateOpportunityData): Promise<Opportunity> {
@@ -93,7 +109,7 @@ export class OpportunityService {
           business_stage: 'startup',
           industry: data.industry,
           location: data.location,
-          status: 'draft',
+          status: 'draft', // Use valid database enum
           views: 0,
           interested_investors: 0,
           risk_score: riskScore
@@ -111,7 +127,7 @@ export class OpportunityService {
         title: opportunityData.title,
         description: opportunityData.description,
         type: data.type,
-        status: opportunityData.status as OpportunityStatus,
+        status: mapStatusFromDatabase(opportunityData.status),
         equity_offered: data.equity_offered,
         order_details: data.order_details,
         partner_roles: data.partner_roles,
@@ -253,7 +269,7 @@ export class OpportunityService {
           target_amount: updates.target_amount,
           industry: updates.industry,
           location: updates.location,
-          status: updates.status,
+          status: updates.status ? mapStatusToDatabase(updates.status) : undefined,
           risk_score: updates.risk_score,
           updated_at: new Date().toISOString()
         })
@@ -271,7 +287,7 @@ export class OpportunityService {
         title: data.title,
         description: data.description,
         type: 'going_concern' as OpportunityType,
-        status: data.status as OpportunityStatus,
+        status: mapStatusFromDatabase(data.status),
         equity_offered: data.equity_offered?.toString(),
         target_amount: data.target_amount,
         currency: 'USD',
@@ -312,7 +328,7 @@ export class OpportunityService {
       const { data, error } = await supabase
         .from('opportunities')
         .update({ 
-          status, 
+          status: mapStatusToDatabase(status), 
           updated_at: new Date().toISOString() 
         })
         .eq('id', id)
@@ -332,10 +348,23 @@ export class OpportunityService {
 
   static async incrementViews(id: string): Promise<void> {
     try {
+      // First get current views count
+      const { data: current, error: getError } = await supabase
+        .from('opportunities')
+        .select('views')
+        .eq('id', id)
+        .single();
+
+      if (getError) {
+        throw getError;
+      }
+
+      // Increment and update
+      const newViews = (current?.views || 0) + 1;
       const { error } = await supabase
         .from('opportunities')
         .update({ 
-          views: supabase.rpc('increment', { row_id: id, column_name: 'views' }),
+          views: newViews,
           updated_at: new Date().toISOString() 
         })
         .eq('id', id);
