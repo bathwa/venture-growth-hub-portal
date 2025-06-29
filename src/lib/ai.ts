@@ -619,8 +619,12 @@ class AIModelManager {
   private calculateFeasibility(opportunity: Opportunity): number {
     let score = 0;
     
-    if (opportunity.fields.technology_readiness_level >= 6) score += 25;
-    if (opportunity.fields.team_size >= 3) score += 20;
+    const techReadiness = parseInt(opportunity.fields.technology_readiness_level || '0');
+    if (techReadiness >= 6) score += 25;
+    
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize >= 3) score += 20;
+    
     if (opportunity.fields.market_research === 'true') score += 20;
     if (opportunity.fields.regulatory_compliant === 'true') score += 20;
     if (opportunity.fields.financial_statements === 'true') score += 15;
@@ -631,10 +635,17 @@ class AIModelManager {
   private calculateMarketPotential(opportunity: Opportunity): number {
     let score = 0;
     
-    if (parseFloat(opportunity.fields.market_size) > 10000000) score += 25;
-    if (parseFloat(opportunity.fields.market_growth_rate) > 15) score += 25;
-    if (parseFloat(opportunity.fields.customer_validation) > 7) score += 25;
-    if (parseInt(opportunity.fields.competition_level) < 5) score += 25;
+    const marketSize = parseFloat(opportunity.fields.market_size || '0');
+    if (marketSize > 10000000) score += 25;
+    
+    const marketGrowthRate = parseFloat(opportunity.fields.market_growth_rate || '0');
+    if (marketGrowthRate > 15) score += 25;
+    
+    const customerValidation = parseFloat(opportunity.fields.customer_validation || '0');
+    if (customerValidation > 7) score += 25;
+    
+    const competitionLevel = parseInt(opportunity.fields.competition_level || '0');
+    if (competitionLevel < 5) score += 25;
     
     return Math.min(score, 100);
   }
@@ -642,8 +653,12 @@ class AIModelManager {
   private calculateTeamStrength(opportunity: Opportunity): number {
     let score = 0;
     
-    if (parseFloat(opportunity.fields.team_experience) > 8) score += 30;
-    if (parseInt(opportunity.fields.team_size) > 5) score += 25;
+    const teamExperience = parseFloat(opportunity.fields.team_experience || '0');
+    if (teamExperience > 8) score += 30;
+    
+    const teamSize = parseInt(opportunity.fields.team_size || '0');
+    if (teamSize > 5) score += 25;
+    
     if (opportunity.fields.team_background === 'diverse') score += 25;
     if (opportunity.fields.team_commitment === 'full_time') score += 20;
     

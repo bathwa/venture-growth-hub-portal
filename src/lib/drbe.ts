@@ -1,4 +1,3 @@
-
 export type OpportunityType = 'going_concern' | 'order_fulfillment' | 'project_partnership';
 export type OpportunityStatus = 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'under_review';
 export type PaymentStatus = 'pending' | 'awaiting_admin' | 'scheduled' | 'completed' | 'failed';
@@ -17,18 +16,6 @@ export interface Payment {
   currency: string;
   reference_number: string;
   status: PaymentStatus;
-}
-
-interface OpportunityValidation {
-  id: string;
-  title: string;
-  type: OpportunityType;
-  status: OpportunityStatus;
-  fields: {
-    equity_offered?: string;
-    order_details?: string;
-    partner_roles?: string;
-  };
 }
 
 export interface ValidationResult {
@@ -84,6 +71,18 @@ export interface Opportunity {
   created_at: string;
   updated_at: string;
   created_by: string;
+}
+
+interface OpportunityValidation {
+  id: string;
+  title: string;
+  type: OpportunityType;
+  status: OpportunityStatus;
+  fields: {
+    equity_offered?: string;
+    order_details?: string;
+    partner_roles?: string;
+  };
 }
 
 export const DRBE = {
@@ -170,25 +169,6 @@ export const DRBE = {
     return 'pending';
   }
 };
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-}
-
-export interface Opportunity {
-  id: string;
-  title: string;
-  type: OpportunityType;
-  status: OpportunityStatus;
-  fields: {
-    equity_offered?: string;
-    order_details?: string;
-    partner_roles?: string;
-  };
-}
-
-export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 // Keep the existing DRBE object but also export it as drbe
 export const drbe = DRBE;
