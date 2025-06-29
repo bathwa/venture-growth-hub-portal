@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { validateOpportunity, validatePayment } from '@/lib/drbe';
+import { DRBE } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { notificationManager } from '@/lib/notifications';
 import { rbac } from '@/lib/rbac';
@@ -102,21 +102,14 @@ describe('Comprehensive User Journey Test Suite', () => {
         const testOpportunity = {
           id: 'test-opp-001',
           title: 'Test Investment Opportunity',
-          description: 'A test opportunity for comprehensive testing',
-          funding_goal: 100000,
-          equity_offered: 10,
-          category: 'technology',
-          risk_level: 'medium',
-          current_revenue: 50000,
-          projected_revenue: 200000,
-          team_size: 5,
-          business_plan: 'true',
-          financial_statements: 'true',
-          legal_structure: 'true',
-          ip_protection: 'true'
+          type: 'going_concern' as const,
+          status: 'draft' as const,
+          fields: {
+            equity_offered: '10'
+          }
         };
 
-        const validation = validateOpportunity(testOpportunity);
+        const validation = DRBE.validateOpportunity(testOpportunity);
         expect(validation.valid).toBe(true);
         expect(validation.errors.length).toBe(0);
 
@@ -133,16 +126,27 @@ describe('Comprehensive User Journey Test Suite', () => {
           id: 'test-opp-002',
           title: 'AI Test Opportunity',
           description: 'An opportunity for AI testing',
-          funding_goal: 50000,
+          industry: 'technology',
+          location: 'San Francisco',
+          target_amount: 50000,
           equity_offered: 15,
-          category: 'technology',
-          risk_level: 'medium'
+          min_investment: 5000,
+          funding_type: 'equity',
+          business_stage: 'startup',
+          status: 'draft',
+          use_of_funds: 'Product development',
+          views: 0,
+          interested_investors: 0,
+          total_raised: 0,
+          entrepreneur_id: entrepreneurId || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
-        // Test basic risk scoring
-        const riskScore = aiModelManager.calculateRiskScore(testOpportunity);
+        // Test basic risk scoring using getRiskScore method
+        const riskScore = await aiModelManager.getRiskScore([testOpportunity.equity_offered]);
         expect(riskScore).toBeGreaterThanOrEqual(0);
-        expect(riskScore).toBeLessThanOrEqual(100);
+        expect(riskScore).toBeLessThanOrEqual(1);
 
         console.log('✅ AI risk assessment successful');
       } catch (error) {
@@ -219,8 +223,6 @@ describe('Comprehensive User Journey Test Suite', () => {
 
         // Test payment validation
         const payment = {
-          id: 'test-payment-001',
-          investment_id: 'test-inv-001',
           amount: 25000,
           currency: 'USD',
           status: 'pending' as const,
@@ -228,7 +230,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           reference_number: 'REF-123456'
         };
 
-        const paymentValidation = validatePayment(payment);
+        const paymentValidation = DRBE.validatePayment(payment);
         expect(paymentValidation.valid).toBe(true);
 
         console.log('✅ Investor opportunity viewing and investment validation successful');
@@ -350,14 +352,14 @@ describe('Comprehensive User Journey Test Suite', () => {
         const opportunity = {
           id: 'test-opp-003',
           title: 'Cross-User Test Opportunity',
-          description: 'An opportunity for cross-user testing',
-          funding_goal: 75000,
-          equity_offered: 12,
-          category: 'technology',
-          risk_level: 'medium'
+          type: 'going_concern' as const,
+          status: 'draft' as const,
+          fields: {
+            equity_offered: '12'
+          }
         };
 
-        const opportunityValidation = validateOpportunity(opportunity);
+        const opportunityValidation = DRBE.validateOpportunity(opportunity);
         expect(opportunityValidation.valid).toBe(true);
 
         // Test that investors can view opportunities (simulated)
@@ -399,21 +401,19 @@ describe('Comprehensive User Journey Test Suite', () => {
         const invalidOpportunity = {
           id: 'test-opp-invalid',
           title: '',
-          description: '',
-          funding_goal: -1000,
-          equity_offered: 150,
-          category: 'invalid',
-          risk_level: 'invalid'
+          type: 'going_concern' as const,
+          status: 'draft' as const,
+          fields: {
+            equity_offered: '150'
+          }
         };
 
-        const validation = validateOpportunity(invalidOpportunity);
+        const validation = DRBE.validateOpportunity(invalidOpportunity);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
 
         // Test with invalid payment data
         const invalidPayment = {
-          id: 'test-payment-invalid',
-          investment_id: '',
           amount: -100,
           currency: '',
           status: 'pending' as const,
@@ -421,7 +421,7 @@ describe('Comprehensive User Journey Test Suite', () => {
           reference_number: ''
         };
 
-        const paymentValidation = validatePayment(invalidPayment);
+        const paymentValidation = DRBE.validatePayment(invalidPayment);
         expect(paymentValidation.valid).toBe(false);
         expect(paymentValidation.errors.length).toBeGreaterThan(0);
 

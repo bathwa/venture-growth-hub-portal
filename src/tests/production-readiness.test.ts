@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { notificationManager } from '@/lib/notifications';
-import { validateOpportunity, validatePayment } from '@/lib/drbe';
+import { DRBE } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { AgreementManager } from '@/lib/agreements';
 import { rbac } from '@/lib/rbac';
@@ -27,11 +27,11 @@ const TEST_CONFIG = {
 const MOCK_OPPORTUNITY = {
   id: 'test-opp-001',
   title: 'Test Investment Opportunity',
-  description: 'A test opportunity for production readiness testing',
-  funding_goal: 100000,
-  equity_offered: 10,
-  category: 'technology',
-  risk_level: 'medium'
+  type: 'going_concern' as const,
+  status: 'draft' as const,
+  fields: {
+    equity_offered: '10'
+  }
 };
 
 const MOCK_USER = {
@@ -122,7 +122,7 @@ describe('Production Readiness Test Suite', () => {
     it('should validate opportunities correctly', async () => {
       totalTests++;
       try {
-        const validation = validateOpportunity(MOCK_OPPORTUNITY);
+        const validation = DRBE.validateOpportunity(MOCK_OPPORTUNITY);
         
         expect(validation.valid).toBeDefined();
         expect(validation.errors).toBeDefined();
@@ -138,8 +138,6 @@ describe('Production Readiness Test Suite', () => {
       totalTests++;
       try {
         const payment = {
-          id: 'test-payment-001',
-          investment_id: 'test-inv-001',
           amount: 50000,
           currency: 'USD',
           status: 'pending' as const,
@@ -147,7 +145,7 @@ describe('Production Readiness Test Suite', () => {
           reference_number: 'REF-123456'
         };
         
-        const validation = validatePayment(payment);
+        const validation = DRBE.validatePayment(payment);
         expect(validation.valid).toBeDefined();
         console.log('✅ Payment validation working');
       } catch (err) {
@@ -162,10 +160,10 @@ describe('Production Readiness Test Suite', () => {
     it('should calculate risk scores', async () => {
       totalTests++;
       try {
-        const riskScore = aiModelManager.calculateRiskScore(MOCK_OPPORTUNITY);
+        const riskScore = await aiModelManager.getRiskScore([10]);
         
         expect(riskScore).toBeGreaterThanOrEqual(0);
-        expect(riskScore).toBeLessThanOrEqual(100);
+        expect(riskScore).toBeLessThanOrEqual(1);
         console.log('✅ AI risk scoring working');
       } catch (err) {
         errorCount++;
@@ -375,12 +373,16 @@ describe('Production Readiness Test Suite', () => {
       totalTests++;
       try {
         const maliciousInput = {
-          ...MOCK_OPPORTUNITY,
+          id: 'test-opp-malicious',
           title: '<script>alert("xss")</script>',
-          description: '"; DROP TABLE users; --'
+          type: 'going_concern' as const,
+          status: 'draft' as const,
+          fields: {
+            equity_offered: '"; DROP TABLE users; --'
+          }
         };
         
-        const validation = validateOpportunity(maliciousInput);
+        const validation = DRBE.validateOpportunity(maliciousInput);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
         console.log('✅ Input sanitization working');
@@ -397,7 +399,7 @@ describe('Production Readiness Test Suite', () => {
       totalTests++;
       try {
         // 1. Create opportunity
-        const opportunityValidation = validateOpportunity(MOCK_OPPORTUNITY);
+        const opportunityValidation = DRBE.validateOpportunity(MOCK_OPPORTUNITY);
         expect(opportunityValidation.valid).toBe(true);
         
         // 2. Create agreement manager
@@ -425,11 +427,16 @@ describe('Production Readiness Test Suite', () => {
       try {
         // Test with invalid data
         const invalidOpportunity = { 
-          ...MOCK_OPPORTUNITY,
-          funding_goal: -1000
+          id: 'test-opp-invalid',
+          title: '',
+          type: 'going_concern' as const,
+          status: 'draft' as const,
+          fields: {
+            equity_offered: '-1000'
+          }
         };
         
-        const validation = validateOpportunity(invalidOpportunity);
+        const validation = DRBE.validateOpportunity(invalidOpportunity);
         expect(validation.valid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
         

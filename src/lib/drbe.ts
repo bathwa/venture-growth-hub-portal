@@ -1,3 +1,4 @@
+
 export type OpportunityType = 'going_concern' | 'order_fulfillment' | 'project_partnership';
 export type OpportunityStatus = 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'under_review';
 export type PaymentStatus = 'pending' | 'awaiting_admin' | 'scheduled' | 'completed' | 'failed';
@@ -180,4 +181,6 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
   }).format(amount);
 };
 
+// Export individual functions for easier importing
+export const validateOpportunity = DRBE.validateOpportunity;
 export const validatePayment = DRBE.validatePayment;
