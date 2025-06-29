@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Opportunity {
@@ -33,7 +34,7 @@ export interface Opportunity {
   closed_at?: string;
 }
 
-export interface CreateOpportunityData extends Partial<Opportunity> {
+export interface CreateOpportunityData {
   entrepreneur_id: string;
   title: string;
   description: string;
@@ -45,7 +46,7 @@ export interface CreateOpportunityData extends Partial<Opportunity> {
   max_investment?: number;
   funding_type: string;
   business_stage: string;
-  status: string;
+  status: 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled';
   use_of_funds?: string;
   website?: string;
   linkedin?: string;
@@ -64,8 +65,8 @@ export interface CreateOpportunityData extends Partial<Opportunity> {
   created_by?: string;
 }
 
-export const mapStatusToDb = (status: string): string => {
-  const statusMap: { [key: string]: string } = {
+export const mapStatusToDb = (status: string): 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled' => {
+  const statusMap: { [key: string]: 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled' } = {
     'under_review': 'pending',
     'reviewing': 'pending',
     'draft': 'draft',
@@ -76,6 +77,17 @@ export const mapStatusToDb = (status: string): string => {
     'cancelled': 'cancelled'
   };
   return statusMap[status] || 'draft';
+};
+
+const mapBusinessStageToDb = (stage: string): 'idea' | 'startup' | 'growth' | 'established' | 'expansion' => {
+  const stageMap: { [key: string]: 'idea' | 'startup' | 'growth' | 'established' | 'expansion' } = {
+    'idea': 'idea',
+    'startup': 'startup',
+    'growth': 'growth',
+    'established': 'established',
+    'expansion': 'expansion'
+  };
+  return stageMap[stage] || 'startup';
 };
 
 export const validateOpportunity = (data: CreateOpportunityData): boolean => {
@@ -97,13 +109,13 @@ export const createOpportunity = async (opportunityData: CreateOpportunityData):
   try {
     console.log('Creating opportunity with data:', opportunityData);
     
-    // Add missing fields for CreateOpportunityData compatibility
     const completeData = {
       ...opportunityData,
       type: opportunityData.type || 'standard',
       currency: opportunityData.currency || 'USD',
       created_by: opportunityData.created_by || opportunityData.entrepreneur_id,
-      status: mapStatusToDb(opportunityData.status || 'draft')
+      status: mapStatusToDb(opportunityData.status || 'draft'),
+      business_stage: mapBusinessStageToDb(opportunityData.business_stage || 'startup')
     };
 
     const { data, error } = await supabase
@@ -158,10 +170,12 @@ export const getOpportunity = async (id: string): Promise<Opportunity | null> =>
 
 export const updateOpportunity = async (id: string, updates: Partial<Opportunity>): Promise<Opportunity> => {
   try {
-    // Map status to database enum if provided
     const dbUpdates = { ...updates };
     if (dbUpdates.status) {
       dbUpdates.status = mapStatusToDb(dbUpdates.status);
+    }
+    if (dbUpdates.business_stage) {
+      dbUpdates.business_stage = mapBusinessStageToDb(dbUpdates.business_stage);
     }
 
     const { data, error } = await supabase
@@ -215,7 +229,6 @@ export const publishOpportunity = async (id: string): Promise<Opportunity> => {
 
 export const incrementViews = async (id: string): Promise<void> => {
   try {
-    // Use a simple update instead of RPC since we don't have the increment function
     const opportunity = await getOpportunity(id);
     if (opportunity) {
       await updateOpportunity(id, { views: (opportunity.views || 0) + 1 });
@@ -224,3 +237,30 @@ export const incrementViews = async (id: string): Promise<void> => {
     console.error('Increment views error:', error);
   }
 };
+
+// Export OpportunityService class for backward compatibility
+export class OpportunityService {
+  static async create(data: CreateOpportunityData): Promise<Opportunity> {
+    return createOpportunity(data);
+  }
+
+  static async getAll(): Promise<Opportunity[]> {
+    return getOpportunities();
+  }
+
+  static async getById(id: string): Promise<Opportunity | null> {
+    return getOpportunity(id);
+  }
+
+  static async update(id: string, updates: Partial<Opportunity>): Promise<Opportunity> {
+    return updateOpportunity(id, updates);
+  }
+
+  static async delete(id: string): Promise<void> {
+    return deleteOpportunity(id);
+  }
+
+  static async publish(id: string): Promise<Opportunity> {
+    return publishOpportunity(id);
+  }
+}

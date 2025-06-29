@@ -175,7 +175,6 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
 
   const handleCreatePool = async () => {
     try {
-      // Validate required fields
       if (!createForm.name?.trim()) {
         toast.error("Pool name is required");
         return;
@@ -193,24 +192,25 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
         name: createForm.name,
         description: createForm.description,
         type: createForm.type,
-        targetAmount: parseFloat(createForm.targetAmount),
-        minimumInvestment: parseFloat(createForm.minimumInvestment),
-        maximumInvestment: parseFloat(createForm.maximumInvestment),
+        target_amount: parseFloat(createForm.targetAmount),
+        minimum_investment: parseFloat(createForm.minimumInvestment),
+        maximum_investment: parseFloat(createForm.maximumInvestment),
         currency: createForm.currency,
-        createdBy: userId,
-        managerId: userId,
-        investmentStrategy: createForm.investmentStrategy,
-        riskProfile: createForm.riskProfile,
-        termLength: parseInt(createForm.termLength),
-        managementFee: parseFloat(createForm.managementFee),
-        performanceFee: parseFloat(createForm.performanceFee),
-        autoApprove: createForm.autoApprove,
-        requireVote: createForm.requireVote,
-        maxMembers: parseInt(createForm.maxMembers)
+        created_by: userId,
+        manager_id: userId,
+        investment_strategy: createForm.investmentStrategy,
+        risk_profile: createForm.riskProfile,
+        term_length_months: parseInt(createForm.termLength),
+        management_fee_percentage: parseFloat(createForm.managementFee),
+        performance_fee_percentage: parseFloat(createForm.performanceFee),
+        auto_approve_investments: createForm.autoApprove,
+        require_majority_vote: createForm.requireVote,
+        max_members: parseInt(createForm.maxMembers)
       });
 
       setPools([createdPool, ...pools]);
       setShowCreateDialog(false);
+      // Reset form
       setCreateForm({
         name: '',
         description: '',
@@ -248,11 +248,10 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     if (!selectedPool) return;
     
     try {
-      await addPoolMember({
-        poolId: selectedPool.id,
-        userId: memberForm.userId,
+      await addPoolMember(selectedPool.id, {
+        user_id: memberForm.userId,
         role: memberForm.role,
-        committedAmount: parseFloat(memberForm.committedAmount)
+        committed_amount: parseFloat(memberForm.committedAmount)
       });
       
       await loadPoolDetails(selectedPool.id);
@@ -271,12 +270,11 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     if (!selectedPool) return;
     
     try {
-      await proposeInvestment({
-        poolId: selectedPool.id,
-        opportunityId: investmentForm.opportunityId,
+      await proposeInvestment(selectedPool.id, {
+        opportunity_id: investmentForm.opportunityId,
         amount: parseFloat(investmentForm.amount),
         currency: investmentForm.currency,
-        proposedBy: userId,
+        proposed_by: userId,
         notes: investmentForm.notes
       });
       
@@ -295,12 +293,7 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
 
   const handleVote = async (investmentId: string) => {
     try {
-      await voteOnInvestment({
-        investmentId,
-        memberId: userId,
-        voteType: voteForm.voteType,
-        comments: voteForm.comments
-      });
+      await voteOnInvestment(investmentId, userId, voteForm.voteType);
       
       if (selectedPool) {
         await loadPoolDetails(selectedPool.id);
@@ -339,7 +332,6 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     if (!editingPool) return;
 
     try {
-      // Update the pool in the database
       const { error } = await supabase
         .from('investment_pools')
         .update({
@@ -366,13 +358,11 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error("Please select an image file");
         return;
       }
       
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("File size must be less than 5MB");
         return;
@@ -387,7 +377,7 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
     setLogoFile(null);
     setLogoPreview('');
     if (editingPool) {
-      setEditingPool({ ...editingPool, logo_url: '' });
+      setEditingPool({ ...editingPool });
     }
   };
 
@@ -1193,4 +1183,4 @@ export function PoolManagement({ userId, userRole }: PoolManagementProps) {
       </Dialog>
     </div>
   );
-} 
+}

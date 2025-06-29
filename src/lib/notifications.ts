@@ -68,7 +68,7 @@ class NotificationManager {
     expires_at?: string;
   }): Promise<Notification> {
     try {
-      // Map investment type to valid database enum
+      // Ensure valid type for database
       const validType = data.type === 'investment' ? 'payment' : data.type;
       
       const notification = {

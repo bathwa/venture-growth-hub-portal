@@ -28,6 +28,10 @@ export interface Pool {
   created_at: string;
   updated_at: string;
   created_by?: string;
+  logo_url?: string;
+  management_fee?: number;
+  carried_interest?: number;
+  is_active?: boolean;
 }
 
 export interface InvestmentPool extends Pool {}
@@ -77,12 +81,29 @@ export interface PoolVote {
   created_at: string;
 }
 
+const mapStatusToDb = (status: string): string => {
+  const statusMap: { [key: string]: string } = {
+    'forming': 'forming',
+    'active': 'active',
+    'investing': 'investing',
+    'distributing': 'distributing',
+    'closed': 'closed',
+    'cancelled': 'cancelled'
+  };
+  return statusMap[status] || 'forming';
+};
+
 export class PoolService {
   static async createPool(poolData: any): Promise<Pool> {
     try {
+      const dbPoolData = {
+        ...poolData,
+        status: mapStatusToDb(poolData.status || 'forming')
+      };
+
       const { data, error } = await supabase
         .from('investment_pools')
-        .insert(poolData)
+        .insert(dbPoolData)
         .select()
         .single();
 
@@ -127,13 +148,9 @@ export class PoolService {
 
   static async updatePool(id: string, updates: Partial<Pool>): Promise<Pool> {
     try {
-      // Ensure status is a valid database enum value
       const dbUpdates = { ...updates };
-      if (dbUpdates.status && typeof dbUpdates.status === 'string') {
-        const validStatuses = ['forming', 'active', 'investing', 'distributing', 'closed', 'cancelled'];
-        if (!validStatuses.includes(dbUpdates.status)) {
-          dbUpdates.status = 'active'; // Default fallback
-        }
+      if (dbUpdates.status) {
+        dbUpdates.status = mapStatusToDb(dbUpdates.status);
       }
 
       const { data, error } = await supabase
@@ -241,10 +258,13 @@ export const executeInvestment = async (investmentId: string): Promise<void> => 
 export const getPoolStats = async (poolId: string): Promise<any> => {
   console.log('Mock: Getting pool stats', poolId);
   return {
-    totalInvestments: 0,
-    totalValue: 0,
-    totalReturns: 0,
-    memberCount: 0
+    totalMembers: 0,
+    activeMembers: 0,
+    totalCommitted: 0,
+    totalInvested: 0,
+    investmentCount: 0,
+    activeInvestments: 0,
+    fundUtilization: 0
   };
 };
 
