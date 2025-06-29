@@ -42,8 +42,9 @@ export interface CreateOpportunityData {
 export class OpportunityService {
   static async createOpportunity(data: CreateOpportunityData): Promise<Opportunity> {
     try {
-      // DRBE validation
+      // DRBE validation with mock id for validation
       const opportunity = {
+        id: 'temp-id', // Add temporary id for validation
         title: data.title,
         type: data.type,
         status: 'draft' as OpportunityStatus,
@@ -78,26 +79,24 @@ export class OpportunityService {
         }
       }
 
-      // Create opportunity in database
+      // Create opportunity in database - using database schema fields
       const { data: opportunityData, error } = await supabase
         .from('opportunities')
         .insert({
           title: data.title,
           description: data.description,
-          type: data.type,
-          status: 'draft',
-          equity_offered: data.equity_offered,
-          order_details: data.order_details,
-          partner_roles: data.partner_roles,
+          entrepreneur_id: data.created_by,
           target_amount: data.target_amount,
-          currency: data.currency,
-          location: data.location,
+          equity_offered: parseFloat(data.equity_offered || '0'),
+          min_investment: 1000, // Default minimum investment
+          funding_type: 'equity',
+          business_stage: 'startup',
           industry: data.industry,
-          created_by: data.created_by,
-          attachments: uploadedPaths,
-          risk_score: riskScore,
+          location: data.location,
+          status: 'draft',
           views: 0,
-          interested_investors: 0
+          interested_investors: 0,
+          risk_score: riskScore
         })
         .select()
         .single();
@@ -106,7 +105,28 @@ export class OpportunityService {
         throw error;
       }
 
-      return opportunityData;
+      // Map database result to our interface
+      return {
+        id: opportunityData.id,
+        title: opportunityData.title,
+        description: opportunityData.description,
+        type: data.type,
+        status: opportunityData.status as OpportunityStatus,
+        equity_offered: data.equity_offered,
+        order_details: data.order_details,
+        partner_roles: data.partner_roles,
+        target_amount: opportunityData.target_amount,
+        currency: 'USD', // Default currency
+        location: opportunityData.location,
+        industry: opportunityData.industry,
+        created_by: opportunityData.entrepreneur_id,
+        created_at: opportunityData.created_at,
+        updated_at: opportunityData.updated_at,
+        attachments: uploadedPaths,
+        risk_score: opportunityData.risk_score,
+        views: opportunityData.views || 0,
+        interested_investors: opportunityData.interested_investors || 0
+      };
     } catch (error) {
       console.error('Create opportunity error:', error);
       throw error;
@@ -118,14 +138,33 @@ export class OpportunityService {
       const { data, error } = await supabase
         .from('opportunities')
         .select('*')
-        .eq('created_by', userId)
+        .eq('entrepreneur_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      return data || [];
+      // Map database results to our interface
+      return (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        type: 'going_concern' as OpportunityType, // Default type
+        status: item.status as OpportunityStatus,
+        equity_offered: item.equity_offered?.toString(),
+        target_amount: item.target_amount,
+        currency: 'USD',
+        location: item.location,
+        industry: item.industry,
+        created_by: item.entrepreneur_id,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        attachments: [],
+        risk_score: item.risk_score,
+        views: item.views || 0,
+        interested_investors: item.interested_investors || 0
+      }));
     } catch (error) {
       console.error('Get opportunities error:', error);
       throw error;
@@ -144,7 +183,28 @@ export class OpportunityService {
         throw error;
       }
 
-      return data;
+      if (!data) return null;
+
+      // Map database result to our interface
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        type: 'going_concern' as OpportunityType,
+        status: data.status as OpportunityStatus,
+        equity_offered: data.equity_offered?.toString(),
+        target_amount: data.target_amount,
+        currency: 'USD',
+        location: data.location,
+        industry: data.industry,
+        created_by: data.entrepreneur_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        attachments: [],
+        risk_score: data.risk_score,
+        views: data.views || 0,
+        interested_investors: data.interested_investors || 0
+      };
     } catch (error) {
       console.error('Get opportunity error:', error);
       throw error;
@@ -156,6 +216,7 @@ export class OpportunityService {
       // DRBE validation if type or fields changed
       if (updates.type || updates.equity_offered || updates.order_details || updates.partner_roles) {
         const opportunity = {
+          id,
           title: updates.title || '',
           type: updates.type || 'going_concern',
           status: updates.status || 'draft',
@@ -186,7 +247,14 @@ export class OpportunityService {
       const { data, error } = await supabase
         .from('opportunities')
         .update({
-          ...updates,
+          title: updates.title,
+          description: updates.description,
+          equity_offered: updates.equity_offered ? parseFloat(updates.equity_offered) : undefined,
+          target_amount: updates.target_amount,
+          industry: updates.industry,
+          location: updates.location,
+          status: updates.status,
+          risk_score: updates.risk_score,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -197,7 +265,26 @@ export class OpportunityService {
         throw error;
       }
 
-      return data;
+      // Map back to our interface
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        type: 'going_concern' as OpportunityType,
+        status: data.status as OpportunityStatus,
+        equity_offered: data.equity_offered?.toString(),
+        target_amount: data.target_amount,
+        currency: 'USD',
+        location: data.location,
+        industry: data.industry,
+        created_by: data.entrepreneur_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        attachments: [],
+        risk_score: data.risk_score,
+        views: data.views || 0,
+        interested_investors: data.interested_investors || 0
+      };
     } catch (error) {
       console.error('Update opportunity error:', error);
       throw error;
@@ -236,7 +323,7 @@ export class OpportunityService {
         throw error;
       }
 
-      return data;
+      return this.getOpportunity(id).then(opp => opp!);
     } catch (error) {
       console.error('Update status error:', error);
       throw error;
@@ -330,4 +417,4 @@ export class OpportunityService {
 
     return { valid: errors.length === 0, errors };
   }
-} 
+}
