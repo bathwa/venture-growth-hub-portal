@@ -1,3 +1,4 @@
+
 /**
  * Production Readiness Test Suite
  * Comprehensive testing to determine if the investment portal is ready for production
@@ -5,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { notificationManager } from '@/lib/notifications';
-import { DRBE, validateOpportunity, validatePayment } from '@/lib/drbe';
+import { validateOpportunity, validatePayment } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { AgreementManager } from '@/lib/agreements';
 import { rbac } from '@/lib/rbac';
@@ -159,7 +160,7 @@ describe('Production Readiness Test Suite', () => {
     it('should calculate risk scores', async () => {
       totalTests++;
       try {
-        const riskScore = await aiModelManager.getRiskScore([10]);
+        const riskScore = await aiModelManager.calculateRiskScore([10]);
         
         expect(riskScore).toBeGreaterThanOrEqual(0);
         expect(riskScore).toBeLessThanOrEqual(1);
@@ -176,17 +177,20 @@ describe('Production Readiness Test Suite', () => {
     it('should create notifications', async () => {
       totalTests++;
       try {
-        // Fix function call to use single parameter
-        const notification = await notificationManager.createNotification(
-          MOCK_USER.id,
-          'milestone-due',
-          {
+        // Using single parameter format
+        const notification = await notificationManager.createNotification({
+          user_id: MOCK_USER.id,
+          title: 'Milestone Due',
+          message: 'Test Milestone for Test Opportunity is due on ' + new Date().toISOString(),
+          type: 'milestone',
+          priority: 'medium',
+          data: {
             milestone_name: 'Test Milestone',
             opportunity_title: 'Test Opportunity',
             due_date: new Date().toISOString(),
             opportunity_id: 'test-opp-001'
           }
-        );
+        });
         
         expect(notification.id).toBeDefined();
         expect(notification.title).toBeDefined();
@@ -330,13 +334,15 @@ describe('Production Readiness Test Suite', () => {
     it('should handle concurrent operations', async () => {
       totalTests++;
       try {
-        // Fix function call to use single parameter
+        // Using single parameter format
         const concurrentOperations = Array.from({ length: 10 }, (_, i) => 
-          notificationManager.createNotification(
-            MOCK_USER.id,
-            'info',
-            { message: `Concurrent test ${i}` }
-          )
+          notificationManager.createNotification({
+            user_id: MOCK_USER.id,
+            title: 'Concurrent Test',
+            message: `Concurrent test ${i}`,
+            type: 'info',
+            data: { test_index: i }
+          })
         );
         
         const results = await Promise.all(concurrentOperations);
@@ -407,12 +413,18 @@ describe('Production Readiness Test Suite', () => {
         const agreementManager = new AgreementManager();
         expect(agreementManager).toBeDefined();
         
-        // 3. Send notifications - fix function call to use single parameter
-        const notification = await notificationManager.createNotification(
-          MOCK_USER.id,
-          'investment-received',
-          { amount: 50000, opportunity_title: 'Test Opportunity' }
-        );
+        // 3. Send notifications - using single parameter format
+        const notification = await notificationManager.createNotification({
+          user_id: MOCK_USER.id,
+          title: 'Investment Received',
+          message: 'An investment of $50000 has been received for Test Opportunity',
+          type: 'payment',
+          priority: 'high',
+          data: { 
+            amount: 50000, 
+            opportunity_title: 'Test Opportunity' 
+          }
+        });
         expect(notification.id).toBeDefined();
         
         console.log('✅ Complete investment workflow working');

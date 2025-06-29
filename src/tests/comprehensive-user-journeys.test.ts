@@ -1,3 +1,4 @@
+
 /**
  * Comprehensive User Journey Test Suite
  * Tests complete user journeys for all user types without requiring admin privileges
@@ -5,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { DRBE, validateOpportunity, validatePayment } from '@/lib/drbe';
+import { validateOpportunity, validatePayment } from '@/lib/drbe';
 import { aiModelManager } from '@/lib/ai';
 import { notificationManager } from '@/lib/notifications';
 import { rbac } from '@/lib/rbac';
@@ -142,8 +143,8 @@ describe('Comprehensive User Journey Test Suite', () => {
           updated_at: new Date().toISOString()
         };
 
-        // Test basic risk scoring using getRiskScore method
-        const riskScore = await aiModelManager.getRiskScore([testOpportunity.equity_offered]);
+        // Test basic risk scoring using calculateRiskScore method
+        const riskScore = await aiModelManager.calculateRiskScore([testOpportunity.equity_offered]);
         expect(riskScore).toBeGreaterThanOrEqual(0);
         expect(riskScore).toBeLessThanOrEqual(1);
 
@@ -316,17 +317,20 @@ describe('Comprehensive User Journey Test Suite', () => {
   describe('4. Notification System', () => {
     it('should send and manage notifications for all user types', async () => {
       try {
-        // Test notification creation - fix function call to use single parameter
-        const notification = await notificationManager.createNotification(
-          entrepreneurId || '',
-          'milestone-due',
-          {
+        // Test notification creation - using single parameter format
+        const notification = await notificationManager.createNotification({
+          user_id: entrepreneurId || '',
+          title: 'Milestone Due',
+          message: 'Test Milestone for Test Opportunity is due on ' + new Date().toISOString(),
+          type: 'milestone',
+          priority: 'medium',
+          data: {
             milestone_name: 'Test Milestone',
             opportunity_title: 'Test Opportunity',
             due_date: new Date().toISOString(),
             opportunity_id: 'test-opp-001'
           }
-        );
+        });
 
         expect(notification.id).toBeDefined();
         expect(notification.title).toBeDefined();
@@ -435,13 +439,15 @@ describe('Comprehensive User Journey Test Suite', () => {
   describe('7. Performance and Scalability', () => {
     it('should handle multiple concurrent operations', async () => {
       try {
-        // Test concurrent notification creation - fix function call to use single parameter  
+        // Test concurrent notification creation - using single parameter format
         const concurrentNotifications = Array.from({ length: 5 }, (_, i) => 
-          notificationManager.createNotification(
-            entrepreneurId || '',
-            'info',
-            { message: `Concurrent test ${i}` }
-          )
+          notificationManager.createNotification({
+            user_id: entrepreneurId || '',
+            title: 'Concurrent Test',
+            message: `Concurrent test ${i}`,
+            type: 'info',
+            data: { test_index: i }
+          })
         );
 
         const results = await Promise.all(concurrentNotifications);
