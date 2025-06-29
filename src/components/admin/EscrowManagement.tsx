@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { EscrowManagement } from '@/components/ui/escrow-management';
 
@@ -15,7 +16,7 @@ export function AdminEscrowManagement({ userId }: AdminEscrowManagementProps) {
         </p>
       </div>
       
-      <EscrowManagement userId={userId} userRole="admin" />
+      <EscrowManagement userId={userId} userRole="entrepreneur" />
     </div>
   );
 }

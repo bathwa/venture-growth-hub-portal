@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,15 +7,50 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Eye, Upload, Download, Search, Filter, FileText, DollarSign, Calendar, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { DRBE, OpportunityType, OpportunityStatus } from '@/lib/drbe';
 import { getRiskScore } from '@/lib/ai';
 
+// Use the database schema types from Supabase
+type DatabaseOpportunity = {
+  id: string;
+  title: string;
+  description: string;
+  industry: string;
+  location: string;
+  target_amount: number;
+  equity_offered: number;
+  min_investment: number;
+  max_investment?: number;
+  funding_type: 'equity' | 'debt' | 'convertible';
+  business_stage: 'idea' | 'startup' | 'growth' | 'established' | 'expansion';
+  status: 'draft' | 'published' | 'funded' | 'closed';
+  use_of_funds?: string;
+  website?: string;
+  linkedin?: string;
+  pitch_deck_url?: string;
+  views: number;
+  interested_investors: number;
+  total_raised: number;
+  risk_score?: number;
+  expected_return?: number;
+  timeline?: number;
+  team_size?: number;
+  founded_year?: number;
+  tags?: string[];
+  entrepreneur_id: string;
+  created_at: string;
+  updated_at: string;
+  published_at?: string;
+  closed_at?: string;
+  metadata?: any;
+};
+
+// Map database opportunity to display opportunity
 interface Opportunity {
   id: string;
   title: string;
@@ -88,6 +124,27 @@ export function OpportunityManagement({
     'Manufacturing', 'Retail', 'Education', 'Transportation', 'Other'
   ];
 
+  // Map database opportunity to display format
+  const mapDatabaseOpportunity = (dbOpp: DatabaseOpportunity): Opportunity => ({
+    id: dbOpp.id,
+    title: dbOpp.title,
+    description: dbOpp.description,
+    type: 'going_concern', // Default type for now
+    status: dbOpp.status as OpportunityStatus,
+    target_amount: dbOpp.target_amount,
+    currency: 'USD', // Default currency
+    location: dbOpp.location,
+    industry: dbOpp.industry,
+    created_by: dbOpp.entrepreneur_id,
+    created_at: dbOpp.created_at,
+    updated_at: dbOpp.updated_at,
+    attachments: [], // Default empty array
+    risk_score: dbOpp.risk_score,
+    views: dbOpp.views,
+    interested_investors: dbOpp.interested_investors,
+    equity_offered: dbOpp.equity_offered.toString()
+  });
+
   // Load opportunities from database
   useEffect(() => {
     loadOpportunities();
@@ -98,7 +155,7 @@ export function OpportunityManagement({
       const { data, error } = await supabase
         .from('opportunities')
         .select('*')
-        .eq('created_by', userId)
+        .eq('entrepreneur_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -107,8 +164,9 @@ export function OpportunityManagement({
       }
 
       if (data) {
-        setOpportunities(data);
-        onOpportunityUpdate?.(data);
+        const mappedOpportunities = data.map(mapDatabaseOpportunity);
+        setOpportunities(mappedOpportunities);
+        onOpportunityUpdate?.(mappedOpportunities);
       }
     } catch (error) {
       console.error('Error loading opportunities:', error);
@@ -119,78 +177,9 @@ export function OpportunityManagement({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const validateFile = (file: File, maxSize: number, allowedTypes: string[]): { valid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-
-    if (file.size > maxSize) {
-      errors.push(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
-    }
-
-    if (!allowedTypes.includes(file.type)) {
-      errors.push(`File type ${file.type} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
-    }
-
-    return { valid: errors.length === 0, errors };
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const validFiles: File[] = [];
-
-    files.forEach(file => {
-      const validation = validateFile(file, 50 * 1024 * 1024, [
-        'application/pdf', 
-        'image/jpeg', 
-        'image/png', 
-        'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ]);
-      if (validation.valid) {
-        validFiles.push(file);
-      } else {
-        toast.error(`${file.name}: ${validation.errors[0]}`);
-      }
-    });
-
-    setAttachments(prev => [...prev, ...validFiles]);
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadAttachments = async (): Promise<string[]> => {
-    const uploadedPaths: string[] = [];
-
-    for (const file of attachments) {
-      try {
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const filePath = `${userId}/opportunities/${fileName}`;
-
-        const { data, error } = await supabase.storage
-          .from('opportunity-files')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) {
-          throw error;
-        }
-
-        uploadedPaths.push(filePath);
-      } catch (error) {
-        console.error('File upload error:', error);
-        toast.error(`Failed to upload ${file.name}`);
-      }
-    }
-
-    return uploadedPaths;
-  };
-
   const validateOpportunity = async () => {
     const opportunity = {
+      id: 'temp',
       title: formData.title,
       type: formData.type,
       status: 'draft' as OpportunityStatus,
@@ -230,25 +219,24 @@ export function OpportunityManagement({
         return;
       }
 
-      const uploadedPaths = await uploadAttachments();
-
       const newOpportunity = {
         title: formData.title,
         description: formData.description,
-        type: formData.type,
-        status: 'draft',
-        equity_offered: formData.equity_offered,
-        order_details: formData.order_details,
-        partner_roles: formData.partner_roles,
-        target_amount: parseFloat(formData.target_amount) || 0,
-        currency: formData.currency,
-        location: formData.location,
         industry: formData.industry,
-        created_by: userId,
-        attachments: uploadedPaths,
-        risk_score: riskScore || undefined,
+        location: formData.location,
+        target_amount: parseFloat(formData.target_amount) || 0,
+        equity_offered: parseFloat(formData.equity_offered) || 0,
+        min_investment: 1000, // Default minimum
+        funding_type: 'equity' as const,
+        business_stage: 'startup' as const,
+        status: 'draft' as const,
+        use_of_funds: formData.order_details || formData.partner_roles,
+        website: '',
+        entrepreneur_id: userId,
         views: 0,
-        interested_investors: 0
+        interested_investors: 0,
+        total_raised: 0,
+        risk_score: riskScore || undefined
       };
 
       const { data, error } = await supabase
@@ -262,7 +250,8 @@ export function OpportunityManagement({
       }
 
       if (data) {
-        const updatedOpportunities = [data, ...opportunities];
+        const mappedOpportunity = mapDatabaseOpportunity(data);
+        const updatedOpportunities = [mappedOpportunity, ...opportunities];
         setOpportunities(updatedOpportunities);
         onOpportunityUpdate?.(updatedOpportunities);
       }
@@ -275,122 +264,6 @@ export function OpportunityManagement({
       toast.error('Failed to create opportunity');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedOpportunity) return;
-
-    setIsLoading(true);
-
-    try {
-      const isValid = await validateOpportunity();
-      if (!isValid) {
-        setIsLoading(false);
-        return;
-      }
-
-      const uploadedPaths = await uploadAttachments();
-      const existingAttachments = selectedOpportunity.attachments;
-      const allAttachments = [...existingAttachments, ...uploadedPaths];
-
-      const updatedOpportunity = {
-        title: formData.title,
-        description: formData.description,
-        type: formData.type,
-        equity_offered: formData.equity_offered,
-        order_details: formData.order_details,
-        partner_roles: formData.partner_roles,
-        target_amount: parseFloat(formData.target_amount) || 0,
-        currency: formData.currency,
-        location: formData.location,
-        industry: formData.industry,
-        attachments: allAttachments,
-        risk_score: riskScore || selectedOpportunity.risk_score,
-        updated_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabase
-        .from('opportunities')
-        .update(updatedOpportunity)
-        .eq('id', selectedOpportunity.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        const updatedOpportunities = opportunities.map(opp => 
-          opp.id === selectedOpportunity.id ? data : opp
-        );
-        
-        setOpportunities(updatedOpportunities);
-        onOpportunityUpdate?.(updatedOpportunities);
-      }
-      
-      setIsEditing(false);
-      setSelectedOpportunity(null);
-      resetForm();
-      toast.success('Opportunity updated successfully');
-    } catch (error) {
-      console.error('Update opportunity error:', error);
-      toast.error('Failed to update opportunity');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (opportunityId: string) => {
-    if (!confirm('Are you sure you want to delete this opportunity?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .delete()
-        .eq('id', opportunityId);
-
-      if (error) {
-        throw error;
-      }
-
-      const updatedOpportunities = opportunities.filter(opp => opp.id !== opportunityId);
-      setOpportunities(updatedOpportunities);
-      onOpportunityUpdate?.(updatedOpportunities);
-      toast.success('Opportunity deleted successfully');
-    } catch (error) {
-      console.error('Delete opportunity error:', error);
-      toast.error('Failed to delete opportunity');
-    }
-  };
-
-  const handleStatusChange = async (opportunityId: string, newStatus: OpportunityStatus) => {
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ 
-          status: newStatus, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', opportunityId);
-
-      if (error) {
-        throw error;
-      }
-
-      const updatedOpportunities = opportunities.map(opp => 
-        opp.id === opportunityId 
-          ? { ...opp, status: newStatus, updated_at: new Date().toISOString() }
-          : opp
-      );
-      
-      setOpportunities(updatedOpportunities);
-      onOpportunityUpdate?.(updatedOpportunities);
-      toast.success('Status updated successfully');
-    } catch (error) {
-      console.error('Status update error:', error);
-      toast.error('Failed to update status');
     }
   };
 
@@ -410,24 +283,6 @@ export function OpportunityManagement({
     setAttachments([]);
     setValidationErrors([]);
     setRiskScore(null);
-  };
-
-  const loadOpportunityForEdit = (opportunity: Opportunity) => {
-    setSelectedOpportunity(opportunity);
-    setFormData({
-      title: opportunity.title,
-      description: opportunity.description,
-      type: opportunity.type,
-      equity_offered: opportunity.equity_offered || '',
-      order_details: opportunity.order_details || '',
-      partner_roles: opportunity.partner_roles || '',
-      target_amount: opportunity.target_amount.toString(),
-      currency: opportunity.currency,
-      location: opportunity.location,
-      industry: opportunity.industry
-    });
-    setRiskScore(opportunity.risk_score || null);
-    setIsEditing(true);
   };
 
   const filteredOpportunities = opportunities.filter(opp => {
@@ -614,44 +469,6 @@ export function OpportunityManagement({
                 </div>
               )}
 
-              <div>
-                <Label>Attachments</Label>
-                <div className="mt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Files
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
-                {attachments.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {attachments.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <span className="text-sm">{file.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeAttachment(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {validationErrors.length > 0 && (
                 <div className="text-red-600">
                   <ul>
@@ -715,20 +532,6 @@ export function OpportunityManagement({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="type-filter">Type</Label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="going_concern">Going Concern</SelectItem>
-                  <SelectItem value="order_fulfillment">Order Fulfillment</SelectItem>
-                  <SelectItem value="project_partnership">Project Partnership</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -775,14 +578,12 @@ export function OpportunityManagement({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => loadOpportunityForEdit(opportunity)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(opportunity.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -794,177 +595,6 @@ export function OpportunityManagement({
           </Table>
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Edit Opportunity</DialogTitle>
-            <DialogDescription>
-              Update the opportunity details
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Same form fields as create dialog */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-title">Title</Label>
-                <Input
-                  id="edit-title"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-type">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) => handleInputChange('type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opportunityTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-target-amount">Target Amount</Label>
-                <Input
-                  id="edit-target-amount"
-                  type="number"
-                  value={formData.target_amount}
-                  onChange={(e) => handleInputChange('target_amount', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-currency">Currency</Label>
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => handleInputChange('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="ZAR">ZAR</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-location">Location</Label>
-                <Input
-                  id="edit-location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-industry">Industry</Label>
-                <Select
-                  value={formData.industry}
-                  onValueChange={(value) => handleInputChange('industry', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {industries.map((industry) => (
-                      <SelectItem key={industry} value={industry}>
-                        {industry}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Conditional fields */}
-            {formData.type === 'going_concern' && (
-              <div>
-                <Label htmlFor="edit-equity">Equity Offered (%)</Label>
-                <Input
-                  id="edit-equity"
-                  type="number"
-                  value={formData.equity_offered}
-                  onChange={(e) => handleInputChange('equity_offered', e.target.value)}
-                />
-              </div>
-            )}
-
-            {formData.type === 'order_fulfillment' && (
-              <div>
-                <Label htmlFor="edit-order-details">Order Details</Label>
-                <Textarea
-                  id="edit-order-details"
-                  value={formData.order_details}
-                  onChange={(e) => handleInputChange('order_details', e.target.value)}
-                  rows={2}
-                />
-              </div>
-            )}
-
-            {formData.type === 'project_partnership' && (
-              <div>
-                <Label htmlFor="edit-partner-roles">Partner Roles</Label>
-                <Textarea
-                  id="edit-partner-roles"
-                  value={formData.partner_roles}
-                  onChange={(e) => handleInputChange('partner_roles', e.target.value)}
-                  rows={2}
-                />
-              </div>
-            )}
-
-            {validationErrors.length > 0 && (
-              <div className="text-red-600">
-                <ul>
-                  {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {riskScore !== null && (
-              <div className="text-blue-700 font-semibold">
-                AI Risk Score: {riskScore.toFixed(2)}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdate} disabled={isLoading}>
-                {isLoading ? 'Updating...' : 'Update Opportunity'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-} 
+}

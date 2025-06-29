@@ -1,1056 +1,242 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  DollarSign, 
-  Briefcase, 
-  FileText, 
-  BarChart3, 
-  PieChart, 
-  Download, 
-  Calendar,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Filter,
-  Search,
-  Download as DownloadIcon,
-  Share2,
-  Settings,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Activity
-} from "lucide-react";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Download, Filter, Calendar, TrendingUp, Users, DollarSign } from 'lucide-react';
 
-// Mock data - replace with actual API calls
-interface AnalyticsData {
-  overview: {
-    totalUsers: number;
-    activeUsers: number;
-    totalOpportunities: number;
-    totalInvestments: number;
-    totalRevenue: number;
-    growthRate: number;
-  };
-  userMetrics: {
-    registrations: { date: string; count: number }[];
-    activeUsers: { date: string; count: number }[];
-    userTypes: { type: string; count: number }[];
-    kycStatus: { status: string; count: number }[];
-  };
-  opportunityMetrics: {
-    created: { date: string; count: number }[];
-    published: { date: string; count: number }[];
-    funded: { date: string; count: number }[];
-    categories: { category: string; count: number }[];
-    fundingRanges: { range: string; count: number }[];
-  };
-  investmentMetrics: {
-    totalInvested: { date: string; amount: number }[];
-    averageInvestment: { date: string; amount: number }[];
-    investmentTypes: { type: string; amount: number }[];
-    investorActivity: { investor: string; investments: number; amount: number }[];
-  };
-  financialMetrics: {
-    revenue: { date: string; amount: number }[];
-    fees: { date: string; amount: number }[];
-    escrowBalance: { date: string; amount: number }[];
-    paymentStatus: { status: string; count: number }[];
-  };
-  performanceMetrics: {
-    conversionRates: { stage: string; rate: number }[];
-    timeToFund: { category: string; days: number }[];
-    userRetention: { period: string; rate: number }[];
-    platformHealth: { metric: string; value: number; status: string }[];
-  };
-}
+// Mock data for charts
+const investmentData = [
+  { month: 'Jan', amount: 120000, count: 8 },
+  { month: 'Feb', amount: 150000, count: 12 },
+  { month: 'Mar', amount: 180000, count: 15 },
+  { month: 'Apr', amount: 220000, count: 18 },
+  { month: 'May', amount: 190000, count: 14 },
+  { month: 'Jun', amount: 250000, count: 20 },
+];
 
-const mockAnalyticsData: AnalyticsData = {
-  overview: {
-    totalUsers: 1247,
-    activeUsers: 892,
-    totalOpportunities: 89,
-    totalInvestments: 156,
-    totalRevenue: 2450000,
-    growthRate: 12.5
-  },
-  userMetrics: {
-    registrations: [
-      { date: '2024-01', count: 45 },
-      { date: '2024-02', count: 67 },
-      { date: '2024-03', count: 89 },
-      { date: '2024-04', count: 123 },
-      { date: '2024-05', count: 156 },
-      { date: '2024-06', count: 178 }
-    ],
-    activeUsers: [
-      { date: '2024-01', count: 234 },
-      { date: '2024-02', count: 289 },
-      { date: '2024-03', count: 345 },
-      { date: '2024-04', count: 412 },
-      { date: '2024-05', count: 478 },
-      { date: '2024-06', count: 523 }
-    ],
-    userTypes: [
-      { type: 'Entrepreneurs', count: 456 },
-      { type: 'Investors', count: 234 },
-      { type: 'Service Providers', count: 123 },
-      { type: 'Pool Managers', count: 67 },
-      { type: 'Observers', count: 89 }
-    ],
-    kycStatus: [
-      { status: 'Verified', count: 892 },
-      { status: 'Pending', count: 234 },
-      { status: 'Rejected', count: 45 },
-      { status: 'Not Started', count: 76 }
-    ]
-  },
-  opportunityMetrics: {
-    created: [
-      { date: '2024-01', count: 12 },
-      { date: '2024-02', count: 18 },
-      { date: '2024-03', count: 23 },
-      { date: '2024-04', count: 31 },
-      { date: '2024-05', count: 28 },
-      { date: '2024-06', count: 35 }
-    ],
-    published: [
-      { date: '2024-01', count: 8 },
-      { date: '2024-02', count: 14 },
-      { date: '2024-03', count: 19 },
-      { date: '2024-04', count: 26 },
-      { date: '2024-05', count: 24 },
-      { date: '2024-06', count: 31 }
-    ],
-    funded: [
-      { date: '2024-01', count: 3 },
-      { date: '2024-02', count: 7 },
-      { date: '2024-03', count: 12 },
-      { date: '2024-04', count: 18 },
-      { date: '2024-05', count: 15 },
-      { date: '2024-06', count: 22 }
-    ],
-    categories: [
-      { category: 'Technology', count: 34 },
-      { category: 'Healthcare', count: 18 },
-      { category: 'Finance', count: 15 },
-      { category: 'Education', count: 12 },
-      { category: 'Other', count: 10 }
-    ],
-    fundingRanges: [
-      { range: '$10K - $50K', count: 25 },
-      { range: '$50K - $100K', count: 18 },
-      { range: '$100K - $500K', count: 23 },
-      { range: '$500K - $1M', count: 15 },
-      { range: '$1M+', count: 8 }
-    ]
-  },
-  investmentMetrics: {
-    totalInvested: [
-      { date: '2024-01', amount: 125000 },
-      { date: '2024-02', amount: 234000 },
-      { date: '2024-03', amount: 345000 },
-      { date: '2024-04', amount: 456000 },
-      { date: '2024-05', amount: 567000 },
-      { date: '2024-06', amount: 678000 }
-    ],
-    averageInvestment: [
-      { date: '2024-01', amount: 41667 },
-      { date: '2024-02', amount: 33429 },
-      { date: '2024-03', amount: 28750 },
-      { date: '2024-04', amount: 25333 },
-      { date: '2024-05', amount: 37800 },
-      { date: '2024-06', amount: 30818 }
-    ],
-    investmentTypes: [
-      { type: 'Equity', amount: 1450000 },
-      { type: 'Debt', amount: 567000 },
-      { type: 'Convertible Note', amount: 234000 },
-      { type: 'Revenue Share', amount: 203000 }
-    ],
-    investorActivity: [
-      { investor: 'Angel Investor LLC', investments: 12, amount: 450000 },
-      { investor: 'Venture Capital Fund', investments: 8, amount: 320000 },
-      { investor: 'Individual Investor', investments: 15, amount: 280000 },
-      { investor: 'Pool Investment Group', investments: 6, amount: 180000 }
-    ]
-  },
-  financialMetrics: {
-    revenue: [
-      { date: '2024-01', amount: 12500 },
-      { date: '2024-02', amount: 23400 },
-      { date: '2024-03', amount: 34500 },
-      { date: '2024-04', amount: 45600 },
-      { date: '2024-05', amount: 56700 },
-      { date: '2024-06', amount: 67800 }
-    ],
-    fees: [
-      { date: '2024-01', amount: 2500 },
-      { date: '2024-02', amount: 4680 },
-      { date: '2024-03', amount: 6900 },
-      { date: '2024-04', amount: 9120 },
-      { date: '2024-05', amount: 11340 },
-      { date: '2024-06', amount: 13560 }
-    ],
-    escrowBalance: [
-      { date: '2024-01', amount: 450000 },
-      { date: '2024-02', amount: 520000 },
-      { date: '2024-03', amount: 610000 },
-      { date: '2024-04', amount: 720000 },
-      { date: '2024-05', amount: 830000 },
-      { date: '2024-06', amount: 950000 }
-    ],
-    paymentStatus: [
-      { status: 'Completed', count: 134 },
-      { status: 'Pending', count: 23 },
-      { status: 'Failed', count: 8 },
-      { status: 'Refunded', count: 3 }
-    ]
-  },
-  performanceMetrics: {
-    conversionRates: [
-      { stage: 'Registration to KYC', rate: 78.5 },
-      { stage: 'KYC to Active', rate: 92.3 },
-      { stage: 'Opportunity Creation to Publication', rate: 85.7 },
-      { stage: 'Publication to Funding', rate: 23.4 },
-      { stage: 'Funding to Completion', rate: 96.8 }
-    ],
-    timeToFund: [
-      { category: 'Technology', days: 45 },
-      { category: 'Healthcare', days: 67 },
-      { category: 'Finance', days: 34 },
-      { category: 'Education', days: 56 },
-      { category: 'Other', days: 52 }
-    ],
-    userRetention: [
-      { period: '1 Month', rate: 85.2 },
-      { period: '3 Months', rate: 72.8 },
-      { period: '6 Months', rate: 64.3 },
-      { period: '12 Months', rate: 58.7 }
-    ],
-    platformHealth: [
-      { metric: 'Uptime', value: 99.8, status: 'excellent' },
-      { metric: 'Response Time', value: 245, status: 'good' },
-      { metric: 'Error Rate', value: 0.2, status: 'excellent' },
-      { metric: 'User Satisfaction', value: 4.6, status: 'good' }
-    ]
-  }
-};
+const industryData = [
+  { name: 'Technology', value: 45, color: '#0088FE' },
+  { name: 'Healthcare', value: 25, color: '#00C49F' },
+  { name: 'Finance', value: 15, color: '#FFBB28' },
+  { name: 'Energy', value: 10, color: '#FF8042' },
+  { name: 'Other', value: 5, color: '#8884D8' },
+];
+
+const userGrowthData = [
+  { month: 'Jan', entrepreneurs: 45, investors: 30, pools: 5 },
+  { month: 'Feb', entrepreneurs: 52, investors: 35, pools: 7 },
+  { month: 'Mar', entrepreneurs: 61, investors: 42, pools: 8 },
+  { month: 'Apr', entrepreneurs: 68, investors: 48, pools: 10 },
+  { month: 'May', entrepreneurs: 75, investors: 55, pools: 12 },
+  { month: 'Jun', entrepreneurs: 82, investors: 62, pools: 15 },
+];
 
 export function ReportsAnalytics() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dateRange, setDateRange] = useState('6m');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [data, setData] = useState<AnalyticsData>(mockAnalyticsData);
-  const [showDetailedMetrics, setShowDetailedMetrics] = useState(false);
+  const [dateRange, setDateRange] = useState('last_6_months');
+  const [reportType, setReportType] = useState('overview');
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsRefreshing(false);
-    toast.success('Analytics data refreshed');
+  const handleExportReport = () => {
+    // Export functionality would be implemented here
+    console.log('Exporting report...');
   };
 
-  const handleExportReport = (type: string) => {
-    // Implementation for exporting reports
-    toast.success(`${type} report exported successfully`);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'excellent':
-        return 'text-green-600';
-      case 'good':
-        return 'text-blue-600';
-      case 'warning':
-        return 'text-orange-600';
-      case 'critical':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'excellent':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'good':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />;
-      case 'warning':
-        return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      case 'critical':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
+  const handleApplyFilters = () => {
+    // Filter application logic would be implemented here
+    console.log('Applying filters...');
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Reports & Analytics</h2>
-          <p className="text-gray-600">Comprehensive insights into platform performance and user activity</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1m">Last Month</SelectItem>
-              <SelectItem value="3m">Last 3 Months</SelectItem>
-              <SelectItem value="6m">Last 6 Months</SelectItem>
-              <SelectItem value="1y">Last Year</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+        <h2 className="text-3xl font-bold text-gray-900">Reports & Analytics</h2>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Calendar className="h-4 w-4 mr-2" />
+            Date Range
           </Button>
-          <Button onClick={() => setShowDetailedMetrics(!showDetailedMetrics)}>
-            {showDetailedMetrics ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {showDetailedMetrics ? 'Hide Details' : 'Show Details'}
+          <Button variant="outline" onClick={handleApplyFilters}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+          <Button onClick={handleExportReport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
           </Button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{data.overview.growthRate}%</span> from last month
-            </p>
-            {showDetailedMetrics && (
-              <div className="mt-2 text-xs text-gray-500">
-                Active: {data.overview.activeUsers.toLocaleString()} ({((data.overview.activeUsers / data.overview.totalUsers) * 100).toFixed(1)}%)
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Opportunities</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.overview.totalOpportunities}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8.2%</span> from last month
-            </p>
-            {showDetailedMetrics && (
-              <div className="mt-2 text-xs text-gray-500">
-                Published: {data.opportunityMetrics.published[data.opportunityMetrics.published.length - 1].count}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Investments</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.overview.totalInvestments)}</div>
+            <div className="text-2xl font-bold">$1,234,567</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+15.3%</span> from last month
+              +20.1% from last month
             </p>
-            {showDetailedMetrics && (
-              <div className="mt-2 text-xs text-gray-500">
-                Count: {data.overview.totalInvestments} deals
-              </div>
-            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">159</div>
+            <p className="text-xs text-muted-foreground">
+              +15.3% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Opportunities</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.overview.totalRevenue)}</div>
+            <div className="text-2xl font-bold">87</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+22.1%</span> from last month
+              +12.5% from last month
             </p>
-            {showDetailedMetrics && (
-              <div className="mt-2 text-xs text-gray-500">
-                Monthly: {formatCurrency(data.overview.totalRevenue / 6)}
-              </div>
-            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">73%</div>
+            <p className="text-xs text-muted-foreground">
+              +5.2% from last month
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-          <TabsTrigger value="investments">Investments</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Platform Health */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Platform Health
-                  <Button variant="outline" size="sm" onClick={() => handleExportReport('platform-health')}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.performanceMetrics.platformHealth.map((metric, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(metric.status)}
-                        <div>
-                          <p className="font-medium">{metric.metric}</p>
-                          <p className="text-sm text-gray-500">Current performance</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${getStatusColor(metric.status)}`}>
-                          {metric.metric === 'Response Time' ? `${metric.value}ms` : 
-                           metric.metric === 'User Satisfaction' ? `${metric.value}/5` :
-                           metric.metric === 'Error Rate' ? `${metric.value}%` : `${metric.value}%`}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {metric.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('comprehensive')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Comprehensive Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('executive')}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate Executive Summary
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('custom')}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Create Custom Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertDescription>
-                      User registration growth is strong at +12.5% month-over-month
-                    </AlertDescription>
-                  </Alert>
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Platform uptime remains excellent at 99.8%
-                    </AlertDescription>
-                  </Alert>
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Opportunity to funding conversion rate could be improved
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">New user registration</p>
-                      <p className="text-xs text-gray-500">john.doe@example.com</p>
-                    </div>
-                    <span className="text-xs text-gray-500">5 min ago</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Payment approved</p>
-                      <p className="text-xs text-gray-500">$50,000 investment</p>
-                    </div>
-                    <span className="text-xs text-gray-500">15 min ago</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Opportunity published</p>
-                      <p className="text-xs text-gray-500">Tech Startup Funding</p>
-                    </div>
-                    <span className="text-xs text-gray-500">1 hour ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Filter Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Report Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div>
+              <Label htmlFor="report-type">Report Type</Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overview">Overview</SelectItem>
+                  <SelectItem value="investments">Investments</SelectItem>
+                  <SelectItem value="users">User Analytics</SelectItem>
+                  <SelectItem value="opportunities">Opportunities</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="date-range">Date Range</Label>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="last_7_days">Last 7 Days</SelectItem>
+                  <SelectItem value="last_30_days">Last 30 Days</SelectItem>
+                  <SelectItem value="last_3_months">Last 3 Months</SelectItem>
+                  <SelectItem value="last_6_months">Last 6 Months</SelectItem>
+                  <SelectItem value="last_year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="users" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* User Types Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Types Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.userMetrics.userTypes.map((type, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{type.type}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
-                            style={{ width: `${(type.count / data.overview.totalUsers) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium">{type.count}</span>
-                      </div>
-                    </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Investment Trends */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Investment Trends</CardTitle>
+            <CardDescription>Monthly investment amounts and counts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={investmentData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="amount" fill="#8884d8" name="Amount ($)" />
+                <Bar dataKey="count" fill="#82ca9d" name="Count" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Industry Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Industry Distribution</CardTitle>
+            <CardDescription>Investment distribution by industry</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={industryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {industryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-            {/* KYC Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>KYC Verification Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.userMetrics.kycStatus.map((status, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{status.status}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={status.status === 'Verified' ? 'default' : 'secondary'}>
-                          {status.count}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          {((status.count / data.overview.totalUsers) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* User Retention */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Retention Rates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.performanceMetrics.userRetention.map((retention, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{retention.period}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${retention.rate}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium">{retention.rate}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Export User Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('user-registrations')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    User Registration Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('kyc-status')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    KYC Status Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('user-activity')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    User Activity Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="opportunities" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Opportunity Categories */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Opportunity Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.opportunityMetrics.categories.map((category, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{category.category}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full" 
-                            style={{ width: `${(category.count / data.overview.totalOpportunities) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium">{category.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Funding Ranges */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Funding Ranges</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.opportunityMetrics.fundingRanges.map((range, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{range.range}</span>
-                      <Badge variant="outline">{range.count}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Conversion Rates */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversion Rates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.performanceMetrics.conversionRates.map((rate, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{rate.stage}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-600 h-2 rounded-full" 
-                            style={{ width: `${rate.rate}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium">{rate.rate}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Opportunity Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('opportunity-categories')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Category Analysis Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('funding-ranges')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Funding Range Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('conversion-rates')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Conversion Analysis Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="investments" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Investment Types */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Investment Types</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.investmentMetrics.investmentTypes.map((type, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{type.type}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{formatCurrency(type.amount)}</span>
-                        <span className="text-xs text-gray-500">
-                          {((type.amount / data.overview.totalInvestments) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top Investors */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Investors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.investmentMetrics.investorActivity.map((investor, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{investor.investor}</p>
-                        <p className="text-xs text-gray-500">{investor.investments} investments</p>
-                      </div>
-                      <span className="text-sm font-medium">{formatCurrency(investor.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Time to Fund */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Average Time to Fund</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.performanceMetrics.timeToFund.map((time, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{time.category}</span>
-                      <Badge variant="outline">{time.days} days</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Investment Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('investment-types')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Investment Types Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('top-investors')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Top Investors Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('time-to-fund')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Time to Fund Analysis
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="financial" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Payment Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.financialMetrics.paymentStatus.map((status, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{status.status}</span>
-                      <Badge variant={status.status === 'Completed' ? 'default' : 'secondary'}>
-                        {status.count}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Fee Structure */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Fee Structure</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Platform Fee</span>
-                    <span className="text-sm font-medium">2.5%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Transaction Fee</span>
-                    <span className="text-sm font-medium">1.0%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Escrow Fee</span>
-                    <span className="text-sm font-medium">0.5%</span>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between font-medium">
-                    <span className="text-sm">Total Average Fee</span>
-                    <span className="text-sm">4.0%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Revenue Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total Revenue (6 months)</span>
-                    <span className="text-sm font-medium">{formatCurrency(data.overview.totalRevenue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Average Monthly Revenue</span>
-                    <span className="text-sm font-medium">{formatCurrency(data.overview.totalRevenue / 6)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Growth Rate</span>
-                    <span className="text-sm font-medium text-green-600">+22.1%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Financial Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('revenue-report')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Revenue Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('payment-status')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Payment Status Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('financial-summary')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Financial Summary
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Platform Health */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Health Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.performanceMetrics.platformHealth.map((metric, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(metric.status)}
-                        <div>
-                          <p className="font-medium">{metric.metric}</p>
-                          <p className="text-sm text-gray-500">Current performance</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${getStatusColor(metric.status)}`}>
-                          {metric.metric === 'Response Time' ? `${metric.value}ms` : 
-                           metric.metric === 'User Satisfaction' ? `${metric.value}/5` :
-                           metric.metric === 'Error Rate' ? `${metric.value}%` : `${metric.value}%`}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {metric.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Conversion Funnel */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversion Funnel</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.performanceMetrics.conversionRates.map((rate, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{rate.stage}</span>
-                        <span className="text-sm font-bold">{rate.rate}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
-                          style={{ width: `${rate.rate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertDescription>
-                      User registration growth is strong at +12.5% month-over-month
-                    </AlertDescription>
-                  </Alert>
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Platform uptime remains excellent at 99.8%
-                    </AlertDescription>
-                  </Alert>
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Opportunity to funding conversion rate could be improved
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Export Performance Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('performance-metrics')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Performance Metrics Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('conversion-analysis')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Conversion Analysis Report
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleExportReport('platform-health')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Platform Health Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        {/* User Growth */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>User Growth</CardTitle>
+            <CardDescription>Growth in different user types over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={userGrowthData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="entrepreneurs" stroke="#8884d8" name="Entrepreneurs" />
+                <Line type="monotone" dataKey="investors" stroke="#82ca9d" name="Investors" />
+                <Line type="monotone" dataKey="pools" stroke="#ffc658" name="Pools" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

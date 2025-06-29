@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export type AgreementType = 'investment' | 'nda' | 'pool' | 'service';
@@ -12,30 +13,18 @@ export interface Agreement {
   content?: string;
 }
 
+export interface AgreementTemplate {
+  id: string;
+  name: string;
+  type: AgreementType;
+  template: string;
+  variables: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const getAgreements = async (): Promise<Agreement[]> => {
-  // try {
-  //   const { data, error } = await supabase
-  //     .from('agreements')
-  //     .select('*');
-
-  //   if (error) {
-  //     console.error('Error fetching agreements:', error);
-  //     return [];
-  //   }
-
-  //   return data.map(agreement => ({
-  //     id: agreement.id,
-  //     title: agreement.title,
-  //     type: agreement.type as AgreementType,
-  //     parties: agreement.parties,
-  //     status: agreement.status as Agreement['status'],
-  //     createdAt: new Date(agreement.created_at),
-  //     content: agreement.content,
-  //   }));
-  // } catch (error) {
-  //   console.error('Error fetching agreements:', error);
-  //   return [];
-  // }
+  // Return mock data for now - will be replaced with real Supabase data later
   return [
     {
       id: '1',
@@ -73,5 +62,28 @@ export const getAgreements = async (): Promise<Agreement[]> => {
       createdAt: new Date(),
       content: 'This is a sample service agreement.'
     },
+  ];
+};
+
+export const getAgreementTemplates = async (): Promise<AgreementTemplate[]> => {
+  return [
+    {
+      id: '1',
+      name: 'Standard Investment Agreement',
+      type: 'investment',
+      template: 'Investment agreement template content...',
+      variables: ['investor_name', 'company_name', 'amount', 'equity_percentage'],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: '2',
+      name: 'Basic NDA',
+      type: 'nda',
+      template: 'Non-disclosure agreement template content...',
+      variables: ['party1_name', 'party2_name', 'effective_date'],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
   ];
 };
