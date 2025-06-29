@@ -81,8 +81,8 @@ export interface PoolVote {
   created_at: string;
 }
 
-const mapStatusToDb = (status: string): string => {
-  const statusMap: { [key: string]: string } = {
+const mapStatusToDb = (status: string): 'forming' | 'active' | 'investing' | 'distributing' | 'closed' | 'cancelled' => {
+  const statusMap: { [key: string]: 'forming' | 'active' | 'investing' | 'distributing' | 'closed' | 'cancelled' } = {
     'forming': 'forming',
     'active': 'active',
     'investing': 'investing',

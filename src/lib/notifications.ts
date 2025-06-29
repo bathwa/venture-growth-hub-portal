@@ -68,14 +68,11 @@ class NotificationManager {
     expires_at?: string;
   }): Promise<Notification> {
     try {
-      // Ensure valid type for database
-      const validType = data.type === 'investment' ? 'payment' : data.type;
-      
       const notification = {
         user_id: data.user_id,
         title: data.title,
         message: data.message,
-        type: validType,
+        type: data.type,
         priority: data.priority || 'medium' as NotificationPriority,
         status: 'unread' as NotificationStatus,
         action_url: data.action_url,
@@ -124,9 +121,7 @@ class NotificationManager {
       }
 
       if (options?.type) {
-        // Map investment type to valid database enum for queries
-        const validType = options.type === 'investment' ? 'payment' : options.type;
-        query = query.eq('type', validType);
+        query = query.eq('type', options.type);
       }
 
       if (options?.priority) {
@@ -272,7 +267,7 @@ class NotificationManager {
       user_id: userId,
       title: 'Investment Update',
       message,
-      type: 'payment', // Using valid enum value
+      type: 'payment',
       priority: 'high',
       action_url: `/investments/${investmentId}`,
       action_text: 'View Investment',
@@ -316,7 +311,31 @@ class NotificationManager {
 }
 
 // Export the class as NotificationService for backward compatibility
-export const NotificationService = NotificationManager;
+export class NotificationService {
+  static async getNotifications(userId: string, options?: Parameters<NotificationManager['getNotifications']>[1]) {
+    return notificationManager.getNotifications(userId, options);
+  }
+
+  static async createNotification(data: Parameters<NotificationManager['createNotification']>[0]) {
+    return notificationManager.createNotification(data);
+  }
+
+  static async markAsRead(notificationId: string) {
+    return notificationManager.markAsRead(notificationId);
+  }
+
+  static async markAllAsRead(userId: string) {
+    return notificationManager.markAllAsRead(userId);
+  }
+
+  static async deleteNotification(notificationId: string) {
+    return notificationManager.deleteNotification(notificationId);
+  }
+
+  static async getNotificationStats(userId: string) {
+    return notificationManager.getNotificationStats(userId);
+  }
+}
 
 export const notificationManager = new NotificationManager();
 

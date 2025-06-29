@@ -67,6 +67,22 @@ const mockObservers: Observer[] = [
 
 const mockInvitations: ObserverInvitation[] = [];
 
+// Helper function to convert database permissions to array format
+const parsePermissions = (permissions: any): ObserverPermission[] => {
+  if (Array.isArray(permissions)) {
+    return permissions;
+  }
+  if (typeof permissions === 'string') {
+    try {
+      const parsed = JSON.parse(permissions);
+      return Array.isArray(parsed) ? parsed : ['read'];
+    } catch {
+      return ['read'];
+    }
+  }
+  return ['read'];
+};
+
 export const getObserversByUser = async (userId: string, entityId?: string, entityType?: string): Promise<Observer[]> => {
   console.log('Mock: Getting observers for user', userId, 'entity', entityId, entityType);
   return mockObservers.filter(observer => observer.granted_by === userId);
@@ -79,7 +95,16 @@ export const getPendingInvitations = async (userId: string, entityId?: string, e
 
 export const getObserverByEmail = async (email: string): Promise<Observer | null> => {
   console.log('Mock: Getting observer by email', email);
-  return mockObservers.find(observer => observer.email === email) || null;
+  
+  // Simulate database lookup with permission parsing
+  const observer = mockObservers.find(observer => observer.email === email);
+  if (observer) {
+    return {
+      ...observer,
+      permissions: parsePermissions(observer.permissions)
+    };
+  }
+  return null;
 };
 
 export const inviteObserver = async (

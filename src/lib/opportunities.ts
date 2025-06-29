@@ -90,6 +90,18 @@ const mapBusinessStageToDb = (stage: string): 'idea' | 'startup' | 'growth' | 'e
   return stageMap[stage] || 'startup';
 };
 
+const mapFundingTypeToDb = (type: string): 'equity' | 'debt' | 'convertible_note' | 'revenue_sharing' => {
+  const typeMap: { [key: string]: 'equity' | 'debt' | 'convertible_note' | 'revenue_sharing' } = {
+    'equity': 'equity',
+    'debt': 'debt',
+    'convertible_note': 'convertible_note',
+    'convertible': 'convertible_note',
+    'revenue_sharing': 'revenue_sharing',
+    'revenue': 'revenue_sharing'
+  };
+  return typeMap[type] || 'equity';
+};
+
 export const validateOpportunity = (data: CreateOpportunityData): boolean => {
   if (!data.entrepreneur_id) return false;
   if (!data.title) return false;
@@ -115,7 +127,8 @@ export const createOpportunity = async (opportunityData: CreateOpportunityData):
       currency: opportunityData.currency || 'USD',
       created_by: opportunityData.created_by || opportunityData.entrepreneur_id,
       status: mapStatusToDb(opportunityData.status || 'draft'),
-      business_stage: mapBusinessStageToDb(opportunityData.business_stage || 'startup')
+      business_stage: mapBusinessStageToDb(opportunityData.business_stage || 'startup'),
+      funding_type: mapFundingTypeToDb(opportunityData.funding_type || 'equity')
     };
 
     const { data, error } = await supabase
@@ -176,6 +189,9 @@ export const updateOpportunity = async (id: string, updates: Partial<Opportunity
     }
     if (dbUpdates.business_stage) {
       dbUpdates.business_stage = mapBusinessStageToDb(dbUpdates.business_stage);
+    }
+    if (dbUpdates.funding_type) {
+      dbUpdates.funding_type = mapFundingTypeToDb(dbUpdates.funding_type);
     }
 
     const { data, error } = await supabase
@@ -244,7 +260,15 @@ export class OpportunityService {
     return createOpportunity(data);
   }
 
+  static async createOpportunity(data: CreateOpportunityData): Promise<Opportunity> {
+    return createOpportunity(data);
+  }
+
   static async getAll(): Promise<Opportunity[]> {
+    return getOpportunities();
+  }
+
+  static async getOpportunities(): Promise<Opportunity[]> {
     return getOpportunities();
   }
 
@@ -257,6 +281,10 @@ export class OpportunityService {
   }
 
   static async delete(id: string): Promise<void> {
+    return deleteOpportunity(id);
+  }
+
+  static async deleteOpportunity(id: string): Promise<void> {
     return deleteOpportunity(id);
   }
 
