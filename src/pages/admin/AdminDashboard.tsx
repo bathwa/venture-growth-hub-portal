@@ -39,45 +39,29 @@ const AdminDashboard = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [pools, setPools] = useState<Pool[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
+    const fetchData = async () => {
+      try {
+        // Fetch opportunities
+        const opportunitiesData = await OpportunityService.getOpportunities();
+        setOpportunities(opportunitiesData);
+
+        // Fetch notifications
+        if (user) {
+          const notificationsData = await NotificationService.getNotifications(user.id);
+          setNotifications(notificationsData);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [user]);
-
-  const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Load all users
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
-
-      // Load all opportunities
-      const allOpportunities = await OpportunityService.getOpportunities('all');
-      setOpportunities(allOpportunities);
-
-      // Load all pools
-      const allPools = await PoolService.getPools();
-      setPools(allPools);
-
-      // Load admin notifications
-      const adminNotifications = await NotificationService.getNotifications(user!.id);
-      setNotifications(adminNotifications);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const getKycStatusColor = (status: string) => {
     switch (status) {

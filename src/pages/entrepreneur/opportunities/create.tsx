@@ -72,7 +72,7 @@ const CreateOpportunity = () => {
         expected_return: parseFloat(formData.expected_return),
         team_size: parseInt(formData.team_size),
         founded_year: parseInt(formData.founded_year),
-        status: 'draft'
+        status: 'draft' as const
       };
 
       await OpportunityService.createOpportunity(opportunityData);
@@ -386,4 +386,4 @@ const CreateOpportunity = () => {
   );
 };
 
-export default CreateOpportunity; 
+export default CreateOpportunity;

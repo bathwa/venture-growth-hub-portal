@@ -21,7 +21,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-const OpportunitiesList = () => {
+const OpportunitiesIndex = () => {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [filteredOpportunities, setFilteredOpportunities] = useState<Opportunity[]>([]);
@@ -32,7 +32,7 @@ const OpportunitiesList = () => {
 
   useEffect(() => {
     if (user) {
-      loadOpportunities();
+      fetchOpportunities();
     }
   }, [user]);
 
@@ -40,13 +40,14 @@ const OpportunitiesList = () => {
     filterOpportunities();
   }, [opportunities, searchTerm, statusFilter, industryFilter]);
 
-  const loadOpportunities = async () => {
+  const fetchOpportunities = async () => {
     try {
       setIsLoading(true);
-      const userOpportunities = await OpportunityService.getOpportunities(user!.id);
+      const data = await OpportunityService.getOpportunities();
+      const userOpportunities = data.filter(opp => opp.entrepreneur_id === user?.id);
       setOpportunities(userOpportunities);
     } catch (error) {
-      console.error('Error loading opportunities:', error);
+      console.error('Error fetching opportunities:', error);
       toast.error('Failed to load opportunities');
     } finally {
       setIsLoading(false);
@@ -83,7 +84,7 @@ const OpportunitiesList = () => {
       try {
         await OpportunityService.deleteOpportunity(opportunityId);
         toast.success('Opportunity deleted successfully');
-        loadOpportunities();
+        fetchOpportunities();
       } catch (error) {
         console.error('Error deleting opportunity:', error);
         toast.error('Failed to delete opportunity');
@@ -345,4 +346,4 @@ const OpportunitiesList = () => {
   );
 };
 
-export default OpportunitiesList; 
+export default OpportunitiesIndex;
