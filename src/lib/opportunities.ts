@@ -183,7 +183,9 @@ export const getOpportunity = async (id: string): Promise<Opportunity | null> =>
 
 export const updateOpportunity = async (id: string, updates: Partial<Opportunity>): Promise<Opportunity> => {
   try {
-    const dbUpdates = { ...updates };
+    const dbUpdates: any = { ...updates };
+    
+    // Apply proper type mapping for database fields
     if (dbUpdates.status) {
       dbUpdates.status = mapStatusToDb(dbUpdates.status);
     }

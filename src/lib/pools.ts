@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Pool {
@@ -147,7 +148,9 @@ export class PoolService {
 
   static async updatePool(id: string, updates: Partial<Pool>): Promise<Pool> {
     try {
-      const dbUpdates = { ...updates };
+      const dbUpdates: any = { ...updates };
+      
+      // Apply proper type mapping for database fields
       if (dbUpdates.status) {
         dbUpdates.status = mapStatusToDb(dbUpdates.status);
       }
