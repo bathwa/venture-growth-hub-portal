@@ -1,5 +1,6 @@
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../contexts/AuthContext';
@@ -71,38 +72,38 @@ describe('App Functionality Tests', () => {
 
   describe('Landing Page', () => {
     it('should render the landing page with main content', () => {
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Check for main title
-      expect(screen.getByText('Investment Portal')).toBeInTheDocument();
+      expect(getByText('Investment Portal')).toBeInTheDocument();
       
       // Check for main description
-      expect(screen.getByText(/Connect entrepreneurs, investors, and service providers/)).toBeInTheDocument();
+      expect(getByText(/Connect entrepreneurs, investors, and service providers/)).toBeInTheDocument();
       
       // Check for Get Started button
-      expect(screen.getByText('Get Started')).toBeInTheDocument();
+      expect(getByText('Get Started')).toBeInTheDocument();
     });
 
     it('should display feature cards', () => {
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Check for user type cards
-      expect(screen.getByText('Entrepreneurs')).toBeInTheDocument();
-      expect(screen.getByText('Investors & Pools')).toBeInTheDocument();
-      expect(screen.getByText('Service Providers')).toBeInTheDocument();
-      expect(screen.getByText('Administrators')).toBeInTheDocument();
+      expect(getByText('Entrepreneurs')).toBeInTheDocument();
+      expect(getByText('Investors & Pools')).toBeInTheDocument();
+      expect(getByText('Service Providers')).toBeInTheDocument();
+      expect(getByText('Administrators')).toBeInTheDocument();
     });
 
     it('should display platform features', () => {
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Check for platform features
-      expect(screen.getByText('Secure Escrow')).toBeInTheDocument();
-      expect(screen.getByText('Investment Pools')).toBeInTheDocument();
-      expect(screen.getByText('AI Insights')).toBeInTheDocument();
-      expect(screen.getByText('Smart Documents')).toBeInTheDocument();
-      expect(screen.getByText('Observer System')).toBeInTheDocument();
-      expect(screen.getByText('Analytics')).toBeInTheDocument();
+      expect(getByText('Secure Escrow')).toBeInTheDocument();
+      expect(getByText('Investment Pools')).toBeInTheDocument();
+      expect(getByText('AI Insights')).toBeInTheDocument();
+      expect(getByText('Smart Documents')).toBeInTheDocument();
+      expect(getByText('Observer System')).toBeInTheDocument();
+      expect(getByText('Analytics')).toBeInTheDocument();
     });
   });
 
@@ -116,10 +117,10 @@ describe('App Functionality Tests', () => {
         role: 'admin'
       }));
 
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Should redirect to admin dashboard
-      expect(screen.getByText('Admin Panel')).toBeInTheDocument();
+      expect(getByText('Admin Panel')).toBeInTheDocument();
     });
 
     it('should handle entrepreneur login', () => {
@@ -131,10 +132,10 @@ describe('App Functionality Tests', () => {
         role: 'entrepreneur'
       }));
 
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Should redirect to entrepreneur dashboard
-      expect(screen.getByText('Entrepreneur Dashboard')).toBeInTheDocument();
+      expect(getByText('Entrepreneur Dashboard')).toBeInTheDocument();
     });
 
     it('should handle investor login', () => {
@@ -146,10 +147,10 @@ describe('App Functionality Tests', () => {
         role: 'investor'
       }));
 
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Should redirect to investor dashboard
-      expect(screen.getByText('Investor Dashboard')).toBeInTheDocument();
+      expect(getByText('Investor Dashboard')).toBeInTheDocument();
     });
 
     it('should handle service provider login', () => {
@@ -161,10 +162,10 @@ describe('App Functionality Tests', () => {
         role: 'service_provider'
       }));
 
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Should redirect to service provider dashboard
-      expect(screen.getByText('Service Provider Dashboard')).toBeInTheDocument();
+      expect(getByText('Service Provider Dashboard')).toBeInTheDocument();
     });
 
     it('should handle pool member login', () => {
@@ -176,10 +177,10 @@ describe('App Functionality Tests', () => {
         role: 'pool'
       }));
 
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Should redirect to investor dashboard (pool members use investor dashboard)
-      expect(screen.getByText('Investor Dashboard')).toBeInTheDocument();
+      expect(getByText('Investor Dashboard')).toBeInTheDocument();
     });
   });
 
@@ -195,45 +196,45 @@ describe('App Functionality Tests', () => {
     });
 
     it('should display admin sidebar navigation', () => {
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Check for sidebar navigation items
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-      expect(screen.getByText('User Management')).toBeInTheDocument();
-      expect(screen.getByText('Payment Management')).toBeInTheDocument();
-      expect(screen.getByText('Investment Pools')).toBeInTheDocument();
-      expect(screen.getByText('Escrow Accounts')).toBeInTheDocument();
-      expect(screen.getByText('Opportunities')).toBeInTheDocument();
-      expect(screen.getByText('Reports & Analytics')).toBeInTheDocument();
-      expect(screen.getByText('Templates')).toBeInTheDocument();
-      expect(screen.getByText('Documents')).toBeInTheDocument();
-      expect(screen.getByText('Observers')).toBeInTheDocument();
-      expect(screen.getByText('Platform Settings')).toBeInTheDocument();
+      expect(getByText('Overview')).toBeInTheDocument();
+      expect(getByText('User Management')).toBeInTheDocument();
+      expect(getByText('Payment Management')).toBeInTheDocument();
+      expect(getByText('Investment Pools')).toBeInTheDocument();
+      expect(getByText('Escrow Accounts')).toBeInTheDocument();
+      expect(getByText('Opportunities')).toBeInTheDocument();
+      expect(getByText('Reports & Analytics')).toBeInTheDocument();
+      expect(getByText('Templates')).toBeInTheDocument();
+      expect(getByText('Documents')).toBeInTheDocument();
+      expect(getByText('Observers')).toBeInTheDocument();
+      expect(getByText('Platform Settings')).toBeInTheDocument();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle 404 routes', () => {
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Navigate to non-existent route
       window.history.pushState({}, '', '/non-existent-route');
       
       // Should show 404 page
-      expect(screen.getByText('404')).toBeInTheDocument();
+      expect(getByText('404')).toBeInTheDocument();
     });
 
     it('should handle unauthorized access', () => {
       // Don't set any user in localStorage
       localStorage.clear();
       
-      render(<TestWrapper><App /></TestWrapper>);
+      const { getByText } = render(<TestWrapper><App /></TestWrapper>);
       
       // Try to access admin route
       window.history.pushState({}, '', '/admin');
       
       // Should redirect to login
-      expect(screen.getByText('Sign In')).toBeInTheDocument();
+      expect(getByText('Sign In')).toBeInTheDocument();
     });
   });
-}); 
+});
