@@ -1,263 +1,275 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { StatisticsService } from '@/lib/statistics';
-import { toast } from 'sonner';
-import { 
-  Briefcase, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  DollarSign,
-  Users,
-  FileText,
-  TrendingUp
-} from 'lucide-react';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Clock, AlertCircle, Plus } from "lucide-react";
+import { useServiceProviderTasks } from "@/hooks/useServiceProviderTasks";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const ServiceProviderDashboard = () => {
-  const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalTasks: 0,
-    completedTasks: 0,
-    pendingTasks: 0,
-    overdueTasks: 0,
-    totalEarnings: 0,
-    activeClients: 0
+  const { tasks, loading, error, createTask, updateTask } = useServiceProviderTasks();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as const,
+    dueDate: ''
   });
-  const [isLoading, setIsLoading] = useState(true);
 
-  const mockTasks = [
-    {
-      id: 1,
-      title: "Legal Review - Tech Startup Funding",
-      client: "TechCorp Inc.",
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-      status: "pending",
-      priority: "high",
-      earnings: 2500
-    },
-    {
-      id: 2,
-      title: "Financial Audit - Healthcare Platform",
-      client: "HealthTech Solutions",
-      dueDate: new Date(Date.now() + 86400000 * 5).toISOString(),
-      status: "pending",
-      priority: "medium",
-      earnings: 1800
-    },
-    {
-      id: 3,
-      title: "Contract Drafting - Real Estate Investment",
-      client: "RealEstate Ventures",
-      dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-      status: "completed",
-      priority: "high",
-      earnings: 3200
-    },
-    {
-      id: 4,
-      title: "Due Diligence - E-commerce Platform",
-      client: "ShopTech",
-      dueDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-      status: "overdue",
-      priority: "high",
-      earnings: 2800
-    }
-  ];
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const handleCreateTask = async () => {
     try {
-      setIsLoading(true);
-      // In a real app, this would fetch from the database
-      const dashboardStats = await StatisticsService.getDashboardStatistics(user?.id || '', 'service_provider');
-      setStats({
-        totalTasks: mockTasks.length,
-        completedTasks: mockTasks.filter(task => task.status === 'completed').length,
-        pendingTasks: mockTasks.filter(task => task.status === 'pending').length,
-        overdueTasks: mockTasks.filter(task => task.status === 'overdue').length,
-        totalEarnings: mockTasks.reduce((sum, task) => sum + task.earnings, 0),
-        activeClients: new Set(mockTasks.map(task => task.client)).size
+      await createTask({
+        title: newTask.title,
+        description: newTask.description,
+        status: 'pending',
+        priority: newTask.priority,
+        dueDate: newTask.dueDate ? new Date(newTask.dueDate) : undefined
       });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
+      
+      setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
+      setIsCreateDialogOpen(false);
+      toast.success('Task created successfully');
+    } catch (err) {
+      toast.error('Failed to create task');
+    }
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    try {
+      await updateTask(taskId, { status: newStatus as any });
+      toast.success('Task status updated');
+    } catch (err) {
+      toast.error('Failed to update task status');
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'in_progress':
+        return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'overdue':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'overdue': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'urgent':
+        return 'bg-red-100 text-red-800';
+      case 'high':
+        return 'bg-orange-100 text-orange-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-green-100 text-green-800';
     }
   };
 
-  if (isLoading) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600">{error}</p>
         </div>
       </div>
     );
   }
 
+  const pendingTasks = tasks.filter(task => task.status === 'pending');
+  const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  const overdueTasks = tasks.filter(task => task.status === 'overdue');
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Service Provider Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name}</p>
+          <h1 className="text-3xl font-bold">Service Provider Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage your tasks and service requests</p>
         </div>
-        <Button>
-          <Briefcase className="h-4 w-4 mr-2" />
-          View All Tasks
-        </Button>
+        
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Task</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  placeholder="Enter task title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  placeholder="Enter task description"
+                />
+              </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Select value={newTask.priority} onValueChange={(value) => setNewTask({ ...newTask, priority: value as any })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="dueDate">Due Date (Optional)</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={newTask.dueDate}
+                  onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                />
+              </div>
+              <Button onClick={handleCreateTask} className="w-full">
+                Create Task
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.completedTasks} completed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeClients}</div>
-            <p className="text-xs text-muted-foreground">
-              Current engagements
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${stats.totalEarnings.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.overdueTasks} overdue
-            </p>
+            <div className="text-2xl font-bold">{pendingTasks.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inProgressTasks.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedTasks.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{overdueTasks.length}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tasks */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Tasks</CardTitle>
-          <CardDescription>
-            Your current service provider tasks and deadlines
-          </CardDescription>
+          <CardDescription>Your latest tasks and their status</CardDescription>
         </CardHeader>
         <CardContent>
-          {mockTasks.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks assigned</h3>
-              <p className="text-gray-600">
-                You'll see your assigned tasks here when they become available
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {mockTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-gray-900">{task.title}</h3>
-                      <Badge className={getPriorityColor(task.priority)}>
-                        {task.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">Client: {task.client}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-                      <span>${task.earnings.toLocaleString()}</span>
+          <div className="space-y-4">
+            {tasks.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No tasks yet. Create your first task to get started.</p>
+            ) : (
+              tasks.slice(0, 10).map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    {getStatusIcon(task.status)}
+                    <div>
+                      <h3 className="font-medium">{task.title}</h3>
+                      {task.description && (
+                        <p className="text-sm text-gray-600">{task.description}</p>
+                      )}
+                      {task.dueDate && (
+                        <p className="text-xs text-gray-500">
+                          Due: {task.dueDate.toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(task.status)}>
-                      {task.status}
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getPriorityColor(task.priority)}>
+                      {task.priority}
                     </Badge>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
+                    <Select value={task.status} onValueChange={(value) => handleStatusChange(task.id, value)}>
+                      <SelectTrigger className="w-32">
+                        <Badge className={getStatusColor(task.status)}>
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <FileText className="h-6 w-6 mb-2" />
-              <span>Submit Report</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <Clock className="h-6 w-6 mb-2" />
-              <span>Update Timeline</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
-              <DollarSign className="h-6 w-6 mb-2" />
-              <span>Request Payment</span>
-            </Button>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,313 +1,205 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { OpportunityService, Opportunity } from '@/lib/opportunities';
-import { KYCService } from '@/lib/kyc';
-import { NotificationService, Notification } from '@/lib/notifications';
-import { toast } from 'sonner';
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  FileText, 
-  Plus, 
-  Eye, 
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Bell
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, DollarSign, Users, Eye, Plus } from "lucide-react";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const EntrepreneurDashboard = () => {
+  const { opportunities, loading: opportunitiesLoading } = useOpportunities();
   const { user } = useAuth();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [kycStatus, setKycStatus] = useState<string>('not_submitted');
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
+    const fetchInvestments = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('investments')
+          .select(`
+            *,
+            opportunities!inner (
+              entrepreneur_id
+            )
+          `)
+          .eq('opportunities.entrepreneur_id', user.id);
+
+        if (error) throw error;
+        setInvestments(data || []);
+      } catch (err) {
+        console.error('Error fetching investments:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvestments();
   }, [user]);
 
-  const loadDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Load opportunities
-      const userOpportunities = await OpportunityService.getOpportunities(user!.id);
-      setOpportunities(userOpportunities);
-
-      // Load KYC status
-      const status = await KYCService.getKycStatus(user!.id);
-      setKycStatus(status);
-
-      // Load notifications
-      const userNotifications = await NotificationService.getNotifications(user!.id);
-      setNotifications(userNotifications);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getKycStatusColor = (status: string) => {
-    switch (status) {
-      case 'verified': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getKycStatusText = (status: string) => {
-    switch (status) {
-      case 'verified': return 'Verified';
-      case 'pending': return 'Pending Review';
-      case 'rejected': return 'Rejected';
-      default: return 'Not Submitted';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'funded': return 'bg-blue-100 text-blue-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const totalFunding = opportunities.reduce((sum, opp) => sum + opp.target_amount, 0);
-  const publishedOpportunities = opportunities.filter(opp => opp.status === 'published').length;
-  const totalViews = opportunities.reduce((sum, opp) => sum + opp.views, 0);
-  const totalInterest = opportunities.reduce((sum, opp) => sum + opp.interested_investors, 0);
-
-  if (isLoading) {
+  if (loading || opportunitiesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
+  const myOpportunities = opportunities.filter(opp => opp.entrepreneurId === user?.id);
+  const publishedOpportunities = myOpportunities.filter(opp => opp.status === 'published');
+  const totalFundingRaised = myOpportunities.reduce((sum, opp) => sum + opp.totalRaised, 0);
+  const totalViews = myOpportunities.reduce((sum, opp) => sum + opp.views, 0);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Entrepreneur Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name}</p>
+          <h1 className="text-3xl font-bold">Entrepreneur Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage your opportunities and track investor interest</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link to="/entrepreneur/opportunities/create">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Opportunity
-            </Link>
-          </Button>
-        </div>
+        <Button onClick={() => navigate('/entrepreneur/opportunities/create')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Opportunity
+        </Button>
       </div>
 
-      {/* KYC Status Alert */}
-      {kycStatus !== 'verified' && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-800">
-                  KYC Verification Required
-                </p>
-                <p className="text-sm text-yellow-700">
-                  Complete your KYC verification to access all features and increase investor trust.
-                </p>
-              </div>
-              <Badge className={getKycStatusColor(kycStatus)}>
-                {getKycStatusText(kycStatus)}
-              </Badge>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/profile">Complete KYC</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Funding Sought</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalFunding.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Across {opportunities.length} opportunities
-            </p>
+            <div className="text-2xl font-bold">${totalFundingRaised.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Across all opportunities</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published Opportunities</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Opportunities</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{publishedOpportunities}</div>
-            <p className="text-xs text-muted-foreground">
-              {opportunities.length - publishedOpportunities} in draft
-            </p>
+            <div className="text-2xl font-bold">{publishedOpportunities.length}</div>
+            <p className="text-xs text-muted-foreground">Currently published</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Investors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{investments.length}</div>
+            <p className="text-xs text-muted-foreground">Across all opportunities</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Profile Views</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalViews}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all opportunities
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interested Investors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInterest}</div>
-            <p className="text-xs text-muted-foreground">
-              Total investor interest
-            </p>
+            <p className="text-xs text-muted-foreground">Total opportunity views</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Opportunities */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Opportunities</CardTitle>
-          <CardDescription>
-            Your latest investment opportunities
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {opportunities.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No opportunities yet</h3>
-              <p className="text-gray-600 mb-4">
-                Create your first investment opportunity to get started
-              </p>
-              <Button asChild>
-                <Link to="/entrepreneur/opportunities/create">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Opportunity
-                </Link>
-              </Button>
-            </div>
-          ) : (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>My Opportunities</CardTitle>
+            <CardDescription>Your published investment opportunities</CardDescription>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              {opportunities.slice(0, 5).map((opportunity) => (
-                <div key={opportunity.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{opportunity.title}</h3>
-                    <p className="text-sm text-gray-600">{opportunity.industry} • {opportunity.location}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="text-sm text-gray-500">
-                        ${opportunity.target_amount.toLocaleString()}
-                      </span>
-                      <Badge className={getStatusColor(opportunity.status)}>
-                        {opportunity.status}
-                      </Badge>
-                      <span className="text-sm text-gray-500">
-                        {opportunity.views} views
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/entrepreneur/opportunities/${opportunity.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/entrepreneur/opportunities/${opportunity.id}/edit`}>
-                        Edit
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {opportunities.length > 5 && (
-                <div className="text-center">
-                  <Button variant="outline" asChild>
-                    <Link to="/entrepreneur/opportunities">
-                      View All Opportunities
-                    </Link>
+              {myOpportunities.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">No opportunities created yet.</p>
+                  <Button onClick={() => navigate('/entrepreneur/opportunities/create')}>
+                    Create Your First Opportunity
                   </Button>
                 </div>
+              ) : (
+                myOpportunities.slice(0, 5).map((opportunity) => (
+                  <div key={opportunity.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">{opportunity.title}</h3>
+                      <p className="text-sm text-gray-600">{opportunity.industry} • {opportunity.location}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge 
+                          className={
+                            opportunity.status === 'published' ? 'bg-green-100 text-green-800' :
+                            opportunity.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }
+                        >
+                          {opportunity.status}
+                        </Badge>
+                        <Badge variant="outline">{opportunity.views} views</Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${opportunity.targetAmount.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">Target</p>
+                      <p className="text-sm text-green-600">${opportunity.totalRaised.toLocaleString()} raised</p>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Recent Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Recent Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {notifications.length === 0 ? (
-            <div className="text-center py-8">
-              <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No notifications yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notifications.slice(0, 5).map((notification) => (
-                <div key={notification.id} className={`flex items-start gap-3 p-3 rounded-lg ${notification.is_read ? 'bg-gray-50' : 'bg-blue-50'}`}>
-                  <div className="flex-shrink-0">
-                    {notification.is_read ? (
-                      <CheckCircle className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full bg-blue-500"></div>
-                    )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Investments</CardTitle>
+            <CardDescription>Latest investments in your opportunities</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {investments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No investments received yet.</p>
+              ) : (
+                investments.slice(0, 5).map((investment) => (
+                  <div key={investment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">Investment Received</h3>
+                      <p className="text-sm text-gray-600">
+                        Amount: ${Number(investment.amount).toLocaleString()}
+                      </p>
+                      <Badge 
+                        className={
+                          investment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          investment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }
+                      >
+                        {investment.status}
+                      </Badge>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">
+                        {new Date(investment.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">{notification.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(notification.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
