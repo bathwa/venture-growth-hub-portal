@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -125,7 +126,7 @@ export default function NotificationCenter({
     try {
       await notificationManager.markAsRead(notificationId, user.id);
       setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, status: 'read', read_at: new Date().toISOString() } : n)
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true, read_at: new Date() } : n)
       );
       setStats(prev => ({ ...prev, unread: prev.unread - 1, read: prev.read + 1 }));
     } catch (error) {
@@ -140,7 +141,7 @@ export default function NotificationCenter({
     try {
       await notificationManager.markAllAsRead(user.id, filterType === 'all' ? undefined : filterType as any);
       setNotifications(prev => 
-        prev.map(n => ({ ...n, status: 'read', read_at: new Date().toISOString() }))
+        prev.map(n => ({ ...n, is_read: true, read_at: new Date() }))
       );
       setStats(prev => ({ 
         ...prev, 
@@ -161,7 +162,7 @@ export default function NotificationCenter({
     try {
       await notificationManager.archiveNotification(notificationId, user.id);
       setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, status: 'archived' } : n)
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
       setStats(prev => ({ 
         ...prev, 
@@ -218,7 +219,7 @@ export default function NotificationCenter({
     }
     
     // Mark as read if not already
-    if (notification.status === 'unread') {
+    if (!notification.is_read) {
       handleMarkAsRead(notification.id);
     }
   };
@@ -227,7 +228,10 @@ export default function NotificationCenter({
   const filteredNotifications = notifications.filter(notification => {
     if (filterType !== 'all' && notification.type !== filterType) return false;
     if (filterPriority !== 'all' && notification.priority !== filterPriority) return false;
-    if (filterStatus !== 'all' && notification.status !== filterStatus) return false;
+    if (filterStatus !== 'all') {
+      const notificationStatus = notification.is_read ? 'read' : 'unread';
+      if (notificationStatus !== filterStatus) return false;
+    }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -271,17 +275,8 @@ export default function NotificationCenter({
   };
 
   // Get status color
-  const getStatusColor = (status: Notification['status']) => {
-    switch (status) {
-      case 'unread':
-        return 'bg-blue-100 text-blue-800';
-      case 'read':
-        return 'bg-gray-100 text-gray-800';
-      case 'archived':
-        return 'bg-gray-50 text-gray-600';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (isRead: boolean) => {
+    return isRead ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800';
   };
 
   if (!isOpen) return null;
@@ -336,8 +331,7 @@ export default function NotificationCenter({
                       <SelectItem value="error">Error</SelectItem>
                       <SelectItem value="milestone">Milestone</SelectItem>
                       <SelectItem value="payment">Payment</SelectItem>
-                      <SelectItem value="agreement">Agreement</SelectItem>
-                      <SelectItem value="kyc">KYC</SelectItem>
+                      <SelectItem value="opportunity">Opportunity</SelectItem>
                       <SelectItem value="system">System</SelectItem>
                     </SelectContent>
                   </Select>
@@ -364,7 +358,6 @@ export default function NotificationCenter({
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="unread">Unread</SelectItem>
                     <SelectItem value="read">Read</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -412,7 +405,7 @@ export default function NotificationCenter({
                     <div
                       key={notification.id}
                       className={`flex items-start gap-4 p-4 border rounded-lg transition-colors ${
-                        notification.status === 'unread' ? 'bg-blue-50 border-blue-200' : 'bg-white'
+                        !notification.is_read ? 'bg-blue-50 border-blue-200' : 'bg-white'
                       }`}
                     >
                       <div className="flex-shrink-0 mt-1">
@@ -439,8 +432,8 @@ export default function NotificationCenter({
                             <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
                             <div className="flex items-center gap-4 text-xs text-gray-500">
                               <span>{new Date(notification.created_at).toLocaleString()}</span>
-                              <Badge variant="outline" className={getStatusColor(notification.status)}>
-                                {notification.status}
+                              <Badge variant="outline" className={getStatusColor(notification.is_read)}>
+                                {notification.is_read ? 'read' : 'unread'}
                               </Badge>
                             </div>
                           </div>
@@ -458,7 +451,7 @@ export default function NotificationCenter({
                               </Button>
                             )}
                             
-                            {notification.status === 'unread' && (
+                            {!notification.is_read && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -568,79 +561,6 @@ export default function NotificationCenter({
 
                 <Separator />
 
-                {/* Quiet Hours */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-sm">Quiet Hours</h4>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="quiet-hours-enabled" className="text-sm">Enable Quiet Hours</Label>
-                      <Switch
-                        id="quiet-hours-enabled"
-                        checked={preferences.quiet_hours.enabled}
-                        onCheckedChange={(checked) => 
-                          handleUpdatePreferences({ 
-                            quiet_hours: { ...preferences.quiet_hours, enabled: checked }
-                          })
-                        }
-                        disabled={isUpdatingPreferences}
-                      />
-                    </div>
-                    
-                    {preferences.quiet_hours.enabled && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs">Start Time</Label>
-                          <Select
-                            value={preferences.quiet_hours.start_time}
-                            onValueChange={(value) => 
-                              handleUpdatePreferences({ 
-                                quiet_hours: { ...preferences.quiet_hours, start_time: value }
-                              })
-                            }
-                          >
-                            <SelectTrigger className="w-20">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[...Array(24)].map((_, i) => (
-                                <SelectItem key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                                  {i.toString().padStart(2, '0')}:00
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs">End Time</Label>
-                          <Select
-                            value={preferences.quiet_hours.end_time}
-                            onValueChange={(value) => 
-                              handleUpdatePreferences({ 
-                                quiet_hours: { ...preferences.quiet_hours, end_time: value }
-                              })
-                            }
-                          >
-                            <SelectTrigger className="w-20">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[...Array(24)].map((_, i) => (
-                                <SelectItem key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                                  {i.toString().padStart(2, '0')}:00
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
                 {/* Statistics */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm">Statistics</h4>
@@ -657,10 +577,6 @@ export default function NotificationCenter({
                     <div className="flex justify-between">
                       <span>Read</span>
                       <span className="font-medium text-gray-600">{stats.read}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Archived</span>
-                      <span className="font-medium text-gray-500">{stats.archived}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Action Required</span>

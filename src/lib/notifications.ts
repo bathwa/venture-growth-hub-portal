@@ -22,8 +22,23 @@ export interface Notification {
 export interface NotificationStats {
   total: number;
   unread: number;
-  highPriority: number;
+  read: number;
+  archived: number;
+  byType: Record<string, number>;
+  byPriority: Record<string, number>;
   actionRequired: number;
+}
+
+export interface NotificationPreferences {
+  email_enabled: boolean;
+  push_enabled: boolean;
+  sms_enabled: boolean;
+  in_app_enabled: boolean;
+  quiet_hours: {
+    enabled: boolean;
+    start_time: string;
+    end_time: string;
+  };
 }
 
 export const getNotifications = async (userId: string, limit = 20): Promise<Notification[]> => {
@@ -63,12 +78,15 @@ export const getNotificationStats = async (userId: string): Promise<Notification
     return {
       total: notifications.length,
       unread: notifications.filter(n => !n.is_read).length,
-      highPriority: notifications.filter(n => ['high', 'urgent'].includes(n.priority)).length,
+      read: notifications.filter(n => n.is_read).length,
+      archived: 0, // Not implemented yet
+      byType: {},
+      byPriority: {},
       actionRequired: notifications.filter(n => n.action_required).length
     };
   } catch (error) {
     console.error('Error fetching notification stats:', error);
-    return { total: 0, unread: 0, highPriority: 0, actionRequired: 0 };
+    return { total: 0, unread: 0, read: 0, archived: 0, byType: {}, byPriority: {}, actionRequired: 0 };
   }
 };
 
@@ -101,5 +119,66 @@ export const createNotification = async (notification: Omit<Notification, 'id' |
     if (error) throw error;
   } catch (error) {
     console.error('Error creating notification:', error);
+  }
+};
+
+export const notificationManager = {
+  getUserNotifications: getNotifications,
+  getNotificationStats,
+  getPreferences: async (userId: string): Promise<NotificationPreferences> => {
+    // Return default preferences for now
+    return {
+      email_enabled: true,
+      push_enabled: true,
+      sms_enabled: false,
+      in_app_enabled: true,
+      quiet_hours: {
+        enabled: false,
+        start_time: '22:00',
+        end_time: '08:00'
+      }
+    };
+  },
+  markAsRead: async (notificationId: string, userId: string) => {
+    return markAsRead(notificationId);
+  },
+  markAllAsRead: async (userId: string, type?: string) => {
+    try {
+      let query = supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (type) {
+        query = query.eq('type', type);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  },
+  archiveNotification: async (notificationId: string, userId: string) => {
+    // For now, just mark as read since we don't have archived status
+    return markAsRead(notificationId);
+  },
+  deleteNotification: async (notificationId: string, userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  },
+  updatePreferences: async (userId: string, preferences: NotificationPreferences) => {
+    // For now, just return the preferences since we don't have a preferences table
+    return preferences;
   }
 };
