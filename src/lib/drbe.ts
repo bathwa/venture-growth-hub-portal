@@ -11,6 +11,13 @@ export interface Milestone {
   last_update: string;
 }
 
+export interface Payment {
+  amount: number;
+  currency: string;
+  reference_number: string;
+  status: PaymentStatus;
+}
+
 interface OpportunityValidation {
   id: string;
   title: string;
@@ -21,13 +28,6 @@ interface OpportunityValidation {
     order_details?: string;
     partner_roles?: string;
   };
-}
-
-interface Payment {
-  amount: number;
-  currency: string;
-  reference_number: string;
-  status: PaymentStatus;
 }
 
 export const DRBE = {
@@ -63,6 +63,27 @@ export const DRBE = {
     };
   },
 
+  validatePayment: (payment: Payment): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (!payment.amount || payment.amount <= 0) {
+      errors.push('Payment amount must be greater than 0');
+    }
+
+    if (!payment.currency) {
+      errors.push('Currency is required');
+    }
+
+    if (!payment.reference_number) {
+      errors.push('Reference number is required');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  },
+
   validateAIOutput: (type: string, value: number): number => {
     if (type === 'risk_score') {
       // Ensure risk score is between 0 and 1
@@ -84,27 +105,6 @@ export const DRBE = {
     }
     
     return 'pending';
-  },
-
-  validatePayment: (payment: Payment): { valid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-
-    if (!payment.amount || payment.amount <= 0) {
-      errors.push('Payment amount must be greater than 0');
-    }
-
-    if (!payment.currency) {
-      errors.push('Currency is required');
-    }
-
-    if (!payment.reference_number) {
-      errors.push('Reference number is required');
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors
-    };
   }
 };
 

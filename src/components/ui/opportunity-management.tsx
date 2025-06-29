@@ -1,29 +1,93 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, Edit, Trash2, Plus, Search, Filter, AlertCircle, TrendingUp, Users, DollarSign } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { DRBE, OpportunityType } from '@/lib/drbe';
+import { 
+  Plus, 
+  Edit, 
+  Eye, 
+  Trash2, 
+  Download, 
+  Upload, 
+  Save,
+  Filter,
+  Search,
+  MoreVertical,
+  ExternalLink
+} from 'lucide-react';
+import { 
+  DRBE, 
+  OpportunityType, 
+  OpportunityStatus 
+} from '@/lib/drbe';
+import { getRiskScore } from '@/lib/ai';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency } from '@/lib/drbe';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { supabase } from '@/integrations/supabase/client';
 
-// Opportunity interface matching the database schema
+interface OpportunityManagementProps {
+  userId: string;
+  userRole: string;
+  className?: string;
+}
+
+interface DatabaseOpportunity {
+  id: string;
+  title: string;
+  description: string;
+  entrepreneur_id: string;
+  target_amount: number;
+  equity_offered: number;
+  min_investment: number;
+  max_investment?: number;
+  funding_type: 'equity' | 'debt' | 'convertible_note' | 'revenue_sharing';
+  business_stage: 'idea' | 'startup' | 'growth' | 'established' | 'expansion';
+  status: 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled';
+  location: string;
+  industry: string;
+  website?: string;
+  linkedin?: string;
+  pitch_deck_url?: string;
+  use_of_funds?: string;
+  expected_return?: number;
+  timeline?: number;
+  team_size?: number;
+  founded_year?: number;
+  tags?: string[];
+  views: number;
+  interested_investors: number;
+  total_raised: number;
+  risk_score?: number;
+  published_at?: string;
+  closed_at?: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: any;
+}
+
 interface Opportunity {
   id: string;
   title: string;
   description: string;
   type: OpportunityType;
-  status: string;
-  equity_offered: number;
+  status: OpportunityStatus;
   target_amount: number;
+  equity_offered: number;
   min_investment: number;
   max_investment?: number;
   location: string;
@@ -32,92 +96,46 @@ interface Opportunity {
   currency: string;
   created_by: string;
   attachments: string[];
-  created_at: string;
-  updated_at: string;
-  views: number;
-  interested_investors: number;
-}
-
-// Database type for the opportunities table
-interface DatabaseOpportunity {
-  id: string;
-  title: string;
-  description: string;
-  funding_type: 'equity' | 'debt' | 'convertible';
-  business_stage: 'idea' | 'startup' | 'growth' | 'established' | 'expansion';
-  status: string;
-  equity_offered: number;
-  target_amount: number;
-  min_investment: number;
-  max_investment?: number;
-  location: string;
-  industry: string;
-  entrepreneur_id: string;
-  created_at: string;
-  updated_at: string;
-  views: number;
-  interested_investors: number;
-  total_raised?: number;
-  expected_return?: number;
-  timeline?: number;
   website?: string;
   linkedin?: string;
   pitch_deck_url?: string;
-  tags?: string[];
   use_of_funds?: string;
-  founded_year?: number;
+  expected_return?: number;
+  timeline?: number;
   team_size?: number;
+  founded_year?: number;
+  tags?: string[];
+  views: number;
+  interested_investors: number;
+  total_raised: number;
   risk_score?: number;
   published_at?: string;
   closed_at?: string;
+  created_at: string;
+  updated_at: string;
   metadata?: any;
 }
 
-const opportunityTypes: OpportunityType[] = ['going_concern', 'order_fulfillment', 'project_partnership'];
-const opportunityStatuses = ['draft', 'pending', 'published', 'funded', 'closed', 'under_review'];
-
-interface OpportunityManagementProps {
-  userRole: 'admin' | 'entrepreneur';
-  userId?: string;
-}
-
-export function OpportunityManagement({ userRole, userId }: OpportunityManagementProps) {
+export default function OpportunityManagement({ userId, userRole }: OpportunityManagementProps) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [allOpportunities, setAllOpportunities] = useState<Opportunity[]>([]);
+  const [filteredOpportunities, setFilteredOpportunities] = useState<Opportunity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
+  const [error, setError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    type: 'going_concern' as OpportunityType,
-    equity_offered: '',
-    order_details: '',
-    partner_roles: '',
-    target_amount: 0,
-    min_investment: 0,
-    max_investment: 0,
-    location: '',
-    industry: '',
-  });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchOpportunities();
-  }, [userRole, userId]);
-
-  const convertDatabaseToOpportunity = (dbOpp: DatabaseOpportunity): Opportunity => {
+  const transformDatabaseOpportunity = (dbOpp: DatabaseOpportunity): Opportunity => {
     return {
       id: dbOpp.id,
       title: dbOpp.title,
       description: dbOpp.description,
-      type: 'going_concern', // Default since database uses different funding_type
-      status: dbOpp.status,
-      equity_offered: dbOpp.equity_offered,
+      type: 'going_concern' as OpportunityType, // Default mapping
+      status: dbOpp.status as OpportunityStatus,
       target_amount: dbOpp.target_amount,
+      equity_offered: dbOpp.equity_offered,
       min_investment: dbOpp.min_investment,
       max_investment: dbOpp.max_investment,
       location: dbOpp.location,
@@ -126,733 +144,610 @@ export function OpportunityManagement({ userRole, userId }: OpportunityManagemen
       currency: 'USD', // Default currency
       created_by: dbOpp.entrepreneur_id,
       attachments: [], // Default empty array
+      website: dbOpp.website,
+      linkedin: dbOpp.linkedin,
+      pitch_deck_url: dbOpp.pitch_deck_url,
+      use_of_funds: dbOpp.use_of_funds,
+      expected_return: dbOpp.expected_return,
+      timeline: dbOpp.timeline,
+      team_size: dbOpp.team_size,
+      founded_year: dbOpp.founded_year,
+      tags: dbOpp.tags,
+      views: dbOpp.views,
+      interested_investors: dbOpp.interested_investors,
+      total_raised: dbOpp.total_raised,
+      risk_score: dbOpp.risk_score,
+      published_at: dbOpp.published_at,
+      closed_at: dbOpp.closed_at,
       created_at: dbOpp.created_at,
       updated_at: dbOpp.updated_at,
-      views: dbOpp.views || 0,
-      interested_investors: dbOpp.interested_investors || 0,
+      metadata: dbOpp.metadata
     };
   };
 
   const fetchOpportunities = async () => {
     try {
       setIsLoading(true);
-      let query = supabase.from('opportunities').select('*');
-      
-      if (userRole === 'entrepreneur' && userId) {
-        query = query.eq('entrepreneur_id', userId);
-      }
+      const { data, error } = await supabase
+        .from('opportunities')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
 
-      if (error) {
-        console.error('Error fetching opportunities:', error);
-        toast.error('Failed to load opportunities');
-        return;
-      }
-
-      const convertedOpportunities = data?.map(convertDatabaseToOpportunity) || [];
-      setOpportunities(convertedOpportunities);
-      setAllOpportunities(convertedOpportunities);
-    } catch (error) {
-      console.error('Error in fetchOpportunities:', error);
-      toast.error('Failed to load opportunities');
+      const transformedData = (data || []).map(transformDatabaseOpportunity);
+      setOpportunities(transformedData);
+      setFilteredOpportunities(transformedData);
+    } catch (err) {
+      console.error('Error fetching opportunities:', err);
+      setError('Failed to load opportunities');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    filterOpportunities(term, filterStatus, filterType);
-  };
+  useEffect(() => {
+    fetchOpportunities();
+  }, [userId]);
 
-  const handleStatusFilter = (status: string) => {
-    setFilterStatus(status);
-    filterOpportunities(searchTerm, status, filterType);
-  };
-
-  const handleTypeFilter = (type: string) => {
-    setFilterType(type);
-    filterOpportunities(searchTerm, filterStatus, type);
-  };
-
-  const filterOpportunities = (search: string, status: string, type: string) => {
-    let filtered = allOpportunities;
-
-    if (search) {
-      filtered = filtered.filter(opp =>
-        opp.title.toLowerCase().includes(search.toLowerCase()) ||
-        opp.description.toLowerCase().includes(search.toLowerCase()) ||
-        opp.industry.toLowerCase().includes(search.toLowerCase())
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query) {
+      const filtered = opportunities.filter(opp =>
+        opp.title.toLowerCase().includes(query.toLowerCase()) ||
+        opp.description.toLowerCase().includes(query.toLowerCase())
       );
+      setFilteredOpportunities(filtered);
+    } else {
+      setFilteredOpportunities(opportunities);
     }
-
-    if (status !== 'all') {
-      filtered = filtered.filter(opp => opp.status === status);
-    }
-
-    if (type !== 'all') {
-      filtered = filtered.filter(opp => opp.type === type);
-    }
-
-    setOpportunities(filtered);
   };
 
-  const handleCreateOpportunity = async () => {
-    if (!userId) {
-      toast.error('User ID is required to create an opportunity');
-      return;
-    }
-
-    const validation = DRBE.validateOpportunity({
-      id: 'temp',
-      title: formData.title,
-      type: formData.type,
-      status: 'draft',
-      fields: {
-        equity_offered: formData.equity_offered,
-        order_details: formData.order_details,
-        partner_roles: formData.partner_roles,
-      }
-    });
-
-    if (!validation.valid) {
-      toast.error(`Validation failed: ${validation.errors.join(', ')}`);
-      return;
-    }
-
+  const handleCreateOpportunity = async (formData: FormData) => {
     try {
-      const newOpportunityData = {
-        title: formData.title,
-        description: formData.description,
-        equity_offered: parseFloat(formData.equity_offered) || 0,
-        target_amount: formData.target_amount,
-        min_investment: formData.min_investment,
-        max_investment: formData.max_investment || null,
-        location: formData.location,
-        industry: formData.industry,
+      setIsSubmitting(true);
+      
+      const opportunityData = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        equity_offered: parseFloat(formData.get('equity_offered') as string),
+        target_amount: parseFloat(formData.get('target_amount') as string),
+        min_investment: parseFloat(formData.get('min_investment') as string),
+        max_investment: parseFloat(formData.get('max_investment') as string) || null,
+        location: formData.get('location') as string,
+        industry: formData.get('industry') as string,
         entrepreneur_id: userId,
-        status: 'draft',
         funding_type: 'equity' as const,
         business_stage: 'startup' as const,
+        status: 'draft' as const,
+        use_of_funds: formData.get('use_of_funds') as string,
+        expected_return: parseFloat(formData.get('expected_return') as string) || null,
+        timeline: parseInt(formData.get('timeline') as string) || null,
+        team_size: parseInt(formData.get('team_size') as string) || null,
+        founded_year: parseInt(formData.get('founded_year') as string) || null,
+        website: formData.get('website') as string || null,
+        linkedin: formData.get('linkedin') as string || null,
         views: 0,
         interested_investors: 0,
+        total_raised: 0
       };
 
       const { data, error } = await supabase
         .from('opportunities')
-        .insert([newOpportunityData])
+        .insert([opportunityData])
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating opportunity:', error);
-        toast.error('Failed to create opportunity');
-        return;
-      }
+      if (error) throw error;
 
-      const newOpportunity = convertDatabaseToOpportunity(data);
+      const newOpportunity = transformDatabaseOpportunity(data);
       setOpportunities(prev => [newOpportunity, ...prev]);
-      setAllOpportunities(prev => [newOpportunity, ...prev]);
-      setIsCreateDialogOpen(false);
-      resetFormData();
-      toast.success('Opportunity created successfully');
-    } catch (error) {
-      console.error('Error in handleCreateOpportunity:', error);
+      setFilteredOpportunities(prev => [newOpportunity, ...prev]);
+      setIsCreateModalOpen(false);
+      toast.success('Opportunity created successfully!');
+    } catch (err) {
+      console.error('Error creating opportunity:', err);
       toast.error('Failed to create opportunity');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleEditOpportunity = async () => {
-    if (!selectedOpportunity) return;
-
-    const validation = DRBE.validateOpportunity({
-      id: selectedOpportunity.id,
-      title: formData.title,
-      type: formData.type,
-      status: selectedOpportunity.status,
-      fields: {
-        equity_offered: formData.equity_offered,
-        order_details: formData.order_details,
-        partner_roles: formData.partner_roles,
-      }
-    });
-
-    if (!validation.valid) {
-      toast.error(`Validation failed: ${validation.errors.join(', ')}`);
-      return;
-    }
-
+  const handleUpdateOpportunity = async (id: string, updates: Partial<Opportunity>) => {
     try {
-      const updateData = {
-        title: formData.title,
-        description: formData.description,
-        equity_offered: parseFloat(formData.equity_offered) || 0,
-        target_amount: formData.target_amount,
-        min_investment: formData.min_investment,
-        max_investment: formData.max_investment || null,
-        location: formData.location,
-        industry: formData.industry,
-        updated_at: new Date().toISOString(),
+      const dbUpdates = {
+        title: updates.title,
+        description: updates.description,
+        equity_offered: updates.equity_offered,
+        target_amount: updates.target_amount,
+        min_investment: updates.min_investment,
+        max_investment: updates.max_investment,
+        location: updates.location,
+        industry: updates.industry,
+        status: updates.status as 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled',
+        use_of_funds: updates.use_of_funds,
+        expected_return: updates.expected_return,
+        timeline: updates.timeline,
+        team_size: updates.team_size,
+        founded_year: updates.founded_year,
+        website: updates.website,
+        linkedin: updates.linkedin,
+        updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('opportunities')
-        .update(updateData)
-        .eq('id', selectedOpportunity.id);
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Error updating opportunity:', error);
-        toast.error('Failed to update opportunity');
-        return;
-      }
+      if (error) throw error;
 
-      // Update local state
-      const updatedOpportunity = { ...selectedOpportunity, ...updateData };
-      const convertedOpportunity = convertDatabaseToOpportunity(updatedOpportunity as any);
-      
-      setOpportunities(prev => prev.map(opp => 
-        opp.id === selectedOpportunity.id ? convertedOpportunity : opp
-      ));
-      setAllOpportunities(prev => prev.map(opp => 
-        opp.id === selectedOpportunity.id ? convertedOpportunity : opp
-      ));
-      
-      setIsEditDialogOpen(false);
-      setSelectedOpportunity(null);
-      resetFormData();
-      toast.success('Opportunity updated successfully');
-    } catch (error) {
-      console.error('Error in handleEditOpportunity:', error);
+      const updatedOpportunity = transformDatabaseOpportunity(data);
+      setOpportunities(prev => prev.map(opp => opp.id === id ? updatedOpportunity : opp));
+      setFilteredOpportunities(prev => prev.map(opp => opp.id === id ? updatedOpportunity : opp));
+      toast.success('Opportunity updated successfully!');
+    } catch (err) {
+      console.error('Error updating opportunity:', err);
       toast.error('Failed to update opportunity');
     }
   };
 
-  const handleDeleteOpportunity = async (opportunityId: string) => {
+  const handleDeleteOpportunity = async (id: string) => {
     try {
       const { error } = await supabase
         .from('opportunities')
         .delete()
-        .eq('id', opportunityId);
+        .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting opportunity:', error);
-        toast.error('Failed to delete opportunity');
-        return;
-      }
+      if (error) throw error;
 
-      setOpportunities(prev => prev.filter(opp => opp.id !== opportunityId));
-      setAllOpportunities(prev => prev.filter(opp => opp.id !== opportunityId));
-      toast.success('Opportunity deleted successfully');
-    } catch (error) {
-      console.error('Error in handleDeleteOpportunity:', error);
+      setOpportunities(prev => prev.filter(opp => opp.id !== id));
+      setFilteredOpportunities(prev => prev.filter(opp => opp.id !== id));
+      toast.success('Opportunity deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting opportunity:', err);
       toast.error('Failed to delete opportunity');
     }
   };
 
-  const handleStatusChange = async (opportunityId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', opportunityId);
+  const handleStatusChange = async (id: string, newStatus: OpportunityStatus) => {
+    const statusMapping: Record<OpportunityStatus, 'draft' | 'pending' | 'published' | 'funded' | 'closed' | 'cancelled'> = {
+      'draft': 'draft',
+      'pending': 'pending', 
+      'published': 'published',
+      'funded': 'funded',
+      'closed': 'closed',
+      'under_review': 'pending'
+    };
 
-      if (error) {
-        console.error('Error updating status:', error);
-        toast.error('Failed to update status');
-        return;
-      }
-
-      setOpportunities(prev => prev.map(opp =>
-        opp.id === opportunityId ? { ...opp, status: newStatus } : opp
-      ));
-      setAllOpportunities(prev => prev.map(opp =>
-        opp.id === opportunityId ? { ...opp, status: newStatus } : opp
-      ));
-      
-      toast.success('Status updated successfully');
-    } catch (error) {
-      console.error('Error in handleStatusChange:', error);
-      toast.error('Failed to update status');
-    }
+    await handleUpdateOpportunity(id, { status: newStatus });
   };
-
-  const resetFormData = () => {
-    setFormData({
-      title: '',
-      description: '',
-      type: 'going_concern',
-      equity_offered: '',
-      order_details: '',
-      partner_roles: '',
-      target_amount: 0,
-      min_investment: 0,
-      max_investment: 0,
-      location: '',
-      industry: '',
-    });
-  };
-
-  const openEditDialog = (opportunity: Opportunity) => {
-    setSelectedOpportunity(opportunity);
-    setFormData({
-      title: opportunity.title,
-      description: opportunity.description,
-      type: opportunity.type,
-      equity_offered: opportunity.equity_offered.toString(),
-      order_details: '',
-      partner_roles: '',
-      target_amount: opportunity.target_amount,
-      min_investment: opportunity.min_investment,
-      max_investment: opportunity.max_investment || 0,
-      location: opportunity.location,
-      industry: opportunity.industry,
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-100 text-green-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'funded': return 'bg-blue-100 text-blue-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const stats = {
-    total: opportunities.length,
-    published: opportunities.filter(o => o.status === 'published').length,
-    draft: opportunities.filter(o => o.status === 'draft').length,
-    funded: opportunities.filter(o => o.status === 'funded').length,
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          {userRole === 'admin' ? 'All Opportunities' : 'My Opportunities'}
-        </h2>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+        <h2 className="text-3xl font-bold text-gray-900">My Opportunities</h2>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
           Create Opportunity
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Published</p>
-                <p className="text-2xl font-bold text-green-600">{stats.published}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Edit className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Draft</p>
-                <p className="text-2xl font-bold text-gray-600">{stats.draft}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <div className="ml-2">
-                <p className="text-sm font-medium">Funded</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.funded}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Search Bar */}
+      <div className="flex items-center space-x-2">
+        <Search className="h-4 w-4 text-gray-500" />
+        <Input
+          type="text"
+          placeholder="Search opportunities..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="w-full max-w-md"
+        />
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search opportunities..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={filterStatus} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {opportunityStatuses.map(status => (
-                  <SelectItem key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filterType} onValueChange={handleTypeFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {opportunityTypes.map(type => (
-                  <SelectItem key={type} value={type}>
-                    {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Opportunities List */}
-      <div className="grid gap-4">
-        {opportunities.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No opportunities found</h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm || filterStatus !== 'all' || filterType !== 'all'
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Get started by creating your first opportunity.'}
-              </p>
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Opportunity
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          opportunities.map((opportunity) => (
-            <Card key={opportunity.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{opportunity.title}</h3>
-                      <Badge className={getStatusColor(opportunity.status)}>
-                        {opportunity.status}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3 line-clamp-2">{opportunity.description}</p>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                      <span>Industry: {opportunity.industry}</span>
-                      <span>Location: {opportunity.location}</span>
-                      <span>Target: ${opportunity.target_amount.toLocaleString()}</span>
-                      <span>Min Investment: ${opportunity.min_investment.toLocaleString()}</span>
-                      <span>Views: {opportunity.views}</span>
-                      <span>Interested: {opportunity.interested_investors}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(opportunity)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {userRole === 'admin' && (
-                      <Select
-                        value={opportunity.status}
-                        onValueChange={(value) => handleStatusChange(opportunity.id, value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {opportunityStatuses.map(status => (
-                            <SelectItem key={status} value={status}>
-                              {status.charAt(0).toUpperCase() + status.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteOpportunity(opportunity.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+      {isLoading ? (
+        <p>Loading opportunities...</p>
+      ) : error ? (
+        <p className="text-red-500">{error}</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredOpportunities.map((opportunity) => (
+            <Card key={opportunity.id} className="bg-white shadow-md rounded-lg overflow-hidden">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-lg font-semibold">{opportunity.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="text-gray-600">
+                  <p>{opportunity.description}</p>
+                  <Separator className="my-2" />
+                  <p>
+                    <strong>Target:</strong> {formatCurrency(opportunity.target_amount, opportunity.currency)}
+                  </p>
+                  <p>
+                    <strong>Equity Offered:</strong> {opportunity.equity_offered}%
+                  </p>
+                  <p>
+                    <strong>Min. Investment:</strong> {formatCurrency(opportunity.min_investment, opportunity.currency)}
+                  </p>
+                  {opportunity.max_investment && (
+                    <p>
+                      <strong>Max. Investment:</strong> {formatCurrency(opportunity.max_investment, opportunity.currency)}
+                    </p>
+                  )}
+                  <p>
+                    <strong>Location:</strong> {opportunity.location}
+                  </p>
+                  <p>
+                    <strong>Industry:</strong> {opportunity.industry}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {opportunity.status}
+                  </p>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedOpportunity(opportunity);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteOpportunity(opportunity.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      {/* Create Opportunity Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create New Opportunity</DialogTitle>
+            <DialogTitle>Create Opportunity</DialogTitle>
             <DialogDescription>
               Fill in the details to create a new investment opportunity.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              await handleCreateOpportunity(formData);
+            }}
+            className="space-y-4"
+          >
             <div>
               <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter opportunity title"
-              />
+              <Input id="title" name="title" type="text" required />
             </div>
             <div>
               <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your opportunity"
-                rows={3}
-              />
+              <Textarea id="description" name="description" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="type">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: OpportunityType) => setFormData({ ...formData, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opportunityTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="equity_offered">Equity Offered (%)</Label>
+                <Input
+                  id="equity_offered"
+                  name="equity_offered"
+                  type="number"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="target_amount">Target Amount</Label>
+                <Input
+                  id="target_amount"
+                  name="target_amount"
+                  type="number"
+                  step="0.01"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="min_investment">Min. Investment</Label>
+                <Input
+                  id="min_investment"
+                  name="min_investment"
+                  type="number"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="max_investment">Max. Investment (Optional)</Label>
+                <Input
+                  id="max_investment"
+                  name="max_investment"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input id="location" name="location" type="text" required />
+            </div>
+            <div>
+              <Label htmlFor="industry">Industry</Label>
+              <Input id="industry" name="industry" type="text" required />
+            </div>
+             <div>
+              <Label htmlFor="use_of_funds">Use of Funds</Label>
+              <Textarea id="use_of_funds" name="use_of_funds" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="expected_return">Expected Return (%)</Label>
+                <Input
+                  id="expected_return"
+                  name="expected_return"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <Label htmlFor="timeline">Timeline (Months)</Label>
+                <Input
+                  id="timeline"
+                  name="timeline"
+                  type="number"
+                  step="1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="team_size">Team Size</Label>
+                <Input
+                  id="team_size"
+                  name="team_size"
+                  type="number"
+                  step="1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="founded_year">Founded Year</Label>
+                <Input
+                  id="founded_year"
+                  name="founded_year"
+                  type="number"
+                  step="1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="website">Website</Label>
+              <Input id="website" name="website" type="url" />
+            </div>
+            <div>
+              <Label htmlFor="linkedin">LinkedIn</Label>
+              <Input id="linkedin" name="linkedin" type="url" />
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Opportunity"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Opportunity Modal */}
+      <Dialog open={isEditModalOpen && selectedOpportunity !== null} onOpenChange={() => setIsEditModalOpen(false)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Opportunity</DialogTitle>
+            <DialogDescription>
+              Edit the details of the selected investment opportunity.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOpportunity && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const updates = {
+                  title: formData.get('title') as string,
+                  description: formData.get('description') as string,
+                  equity_offered: parseFloat(formData.get('equity_offered') as string),
+                  target_amount: parseFloat(formData.get('target_amount') as string),
+                  min_investment: parseFloat(formData.get('min_investment') as string),
+                  max_investment: parseFloat(formData.get('max_investment') as string) || undefined,
+                  location: formData.get('location') as string,
+                  industry: formData.get('industry') as string,
+                  use_of_funds: formData.get('use_of_funds') as string,
+                  expected_return: parseFloat(formData.get('expected_return') as string) || undefined,
+                  timeline: parseInt(formData.get('timeline') as string) || undefined,
+                  team_size: parseInt(formData.get('team_size') as string) || undefined,
+                  founded_year: parseInt(formData.get('founded_year') as string) || undefined,
+                  website: formData.get('website') as string || undefined,
+                  linkedin: formData.get('linkedin') as string || undefined,
+                };
+                await handleUpdateOpportunity(selectedOpportunity.id, updates as any);
+                setIsEditModalOpen(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  type="text"
+                  defaultValue={selectedOpportunity.title}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  defaultValue={selectedOpportunity.description}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="equity_offered">Equity Offered (%)</Label>
+                  <Input
+                    id="equity_offered"
+                    name="equity_offered"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedOpportunity.equity_offered}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="target_amount">Target Amount</Label>
+                  <Input
+                    id="target_amount"
+                    name="target_amount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedOpportunity.target_amount}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="min_investment">Min. Investment</Label>
+                  <Input
+                    id="min_investment"
+                    name="min_investment"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedOpportunity.min_investment}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="max_investment">Max. Investment (Optional)</Label>
+                  <Input
+                    id="max_investment"
+                    name="max_investment"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedOpportunity.max_investment || ""}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  type="text"
+                  defaultValue={selectedOpportunity.location}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="industry">Industry</Label>
                 <Input
                   id="industry"
-                  value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  placeholder="e.g., Technology"
+                  name="industry"
+                  type="text"
+                  defaultValue={selectedOpportunity.industry}
+                  required
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="target_amount">Target Amount ($)</Label>
+                <Label htmlFor="use_of_funds">Use of Funds</Label>
+                <Textarea
+                  id="use_of_funds"
+                  name="use_of_funds"
+                  defaultValue={selectedOpportunity.use_of_funds || ""}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="expected_return">Expected Return (%)</Label>
+                  <Input
+                    id="expected_return"
+                    name="expected_return"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedOpportunity.expected_return || ""}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="timeline">Timeline (Months)</Label>
+                  <Input
+                    id="timeline"
+                    name="timeline"
+                    type="number"
+                    step="1"
+                    defaultValue={selectedOpportunity.timeline || ""}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="team_size">Team Size</Label>
+                  <Input
+                    id="team_size"
+                    name="team_size"
+                    type="number"
+                    step="1"
+                    defaultValue={selectedOpportunity.team_size || ""}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="founded_year">Founded Year</Label>
+                  <Input
+                    id="founded_year"
+                    name="founded_year"
+                    type="number"
+                    step="1"
+                    defaultValue={selectedOpportunity.founded_year || ""}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="website">Website</Label>
                 <Input
-                  id="target_amount"
-                  type="number"
-                  value={formData.target_amount}
-                  onChange={(e) => setFormData({ ...formData, target_amount: Number(e.target.value) })}
-                  placeholder="500000"
+                  id="website"
+                  name="website"
+                  type="url"
+                  defaultValue={selectedOpportunity.website || ""}
                 />
               </div>
               <div>
-                <Label htmlFor="min_investment">Minimum Investment ($)</Label>
+                <Label htmlFor="linkedin">LinkedIn</Label>
                 <Input
-                  id="min_investment"
-                  type="number"
-                  value={formData.min_investment}
-                  onChange={(e) => setFormData({ ...formData, min_investment: Number(e.target.value) })}
-                  placeholder="10000"
+                  id="linkedin"
+                  name="linkedin"
+                  type="url"
+                  defaultValue={selectedOpportunity.linkedin || ""}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="City, Country"
-                />
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating..." : "Update Opportunity"}
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="equity_offered">Equity Offered (%)</Label>
-                <Input
-                  id="equity_offered"
-                  value={formData.equity_offered}
-                  onChange={(e) => setFormData({ ...formData, equity_offered: e.target.value })}
-                  placeholder="15"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateOpportunity}>
-                Create Opportunity
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Opportunity</DialogTitle>
-            <DialogDescription>
-              Update the opportunity details.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Same form fields as create dialog */}
-            <div>
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter opportunity title"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your opportunity"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-type">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: OpportunityType) => setFormData({ ...formData, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opportunityTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-industry">Industry</Label>
-                <Input
-                  id="edit-industry"
-                  value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  placeholder="e.g., Technology"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-target_amount">Target Amount ($)</Label>
-                <Input
-                  id="edit-target_amount"
-                  type="number"
-                  value={formData.target_amount}
-                  onChange={(e) => setFormData({ ...formData, target_amount: Number(e.target.value) })}
-                  placeholder="500000"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-min_investment">Minimum Investment ($)</Label>
-                <Input
-                  id="edit-min_investment"
-                  type="number"
-                  value={formData.min_investment}
-                  onChange={(e) => setFormData({ ...formData, min_investment: Number(e.target.value) })}
-                  placeholder="10000"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-location">Location</Label>
-                <Input
-                  id="edit-location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="City, Country"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-equity_offered">Equity Offered (%)</Label>
-                <Input
-                  id="edit-equity_offered"
-                  value={formData.equity_offered}
-                  onChange={(e) => setFormData({ ...formData, equity_offered: e.target.value })}
-                  placeholder="15"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEditOpportunity}>
-                Update Opportunity
-              </Button>
-            </div>
-          </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

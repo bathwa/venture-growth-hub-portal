@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +39,7 @@ export const useOpportunities = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
   const fetchOpportunities = async () => {
@@ -94,45 +94,50 @@ export const useOpportunities = () => {
     }
   };
 
-  const createOpportunity = async (opportunityData: Omit<Opportunity, 'id' | 'views' | 'interestedInvestors' | 'totalRaised' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'closedAt'>) => {
-    if (!user) return;
-
+  const createOpportunity = async (opportunityData: any) => {
     try {
+      setIsLoading(true);
+      
+      const dbData = {
+        title: opportunityData.title,
+        description: opportunityData.description,
+        target_amount: opportunityData.target_amount,
+        equity_offered: opportunityData.equity_offered,
+        min_investment: opportunityData.min_investment,
+        max_investment: opportunityData.max_investment,
+        location: opportunityData.location,
+        industry: opportunityData.industry,
+        entrepreneur_id: opportunityData.entrepreneur_id,
+        funding_type: opportunityData.funding_type || 'equity',
+        business_stage: opportunityData.business_stage || 'startup',
+        status: opportunityData.status || 'draft',
+        use_of_funds: opportunityData.use_of_funds,
+        expected_return: opportunityData.expected_return,
+        timeline: opportunityData.timeline,
+        team_size: opportunityData.team_size,
+        founded_year: opportunityData.founded_year,
+        website: opportunityData.website,
+        linkedin: opportunityData.linkedin,
+        views: 0,
+        interested_investors: 0,
+        total_raised: 0
+      };
+
       const { data, error } = await supabase
         .from('opportunities')
-        .insert({
-          entrepreneur_id: user.id,
-          title: opportunityData.title,
-          description: opportunityData.description,
-          industry: opportunityData.industry,
-          location: opportunityData.location,
-          target_amount: opportunityData.targetAmount,
-          equity_offered: opportunityData.equityOffered,
-          min_investment: opportunityData.minInvestment,
-          max_investment: opportunityData.maxInvestment,
-          funding_type: opportunityData.fundingType,
-          business_stage: opportunityData.businessStage,
-          status: opportunityData.status,
-          use_of_funds: opportunityData.useOfFunds,
-          website: opportunityData.website,
-          linkedin: opportunityData.linkedin,
-          pitch_deck_url: opportunityData.pitchDeckUrl,
-          expected_return: opportunityData.expectedReturn,
-          timeline: opportunityData.timeline,
-          team_size: opportunityData.teamSize,
-          founded_year: opportunityData.foundedYear,
-          tags: opportunityData.tags
-        })
+        .insert([dbData])
         .select()
         .single();
 
       if (error) throw error;
-
+      
       await fetchOpportunities();
       return data;
-    } catch (err) {
-      console.error('Error creating opportunity:', err);
-      throw err;
+    } catch (error) {
+      console.error('Error creating opportunity:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
