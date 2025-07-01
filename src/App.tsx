@@ -27,6 +27,25 @@ import OpportunitiesList from '@/pages/entrepreneur/opportunities/index';
 // Components
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
+// Get dashboard route based on user role
+const getDashboardRoute = (role: string): string => {
+  switch (role) {
+    case 'admin':
+      return '/admin';
+    case 'entrepreneur':
+      return '/entrepreneur';
+    case 'investor':
+    case 'pool':
+      return '/investor';
+    case 'service_provider':
+      return '/service-provider';
+    case 'observer':
+      return '/observer';
+    default:
+      return '/';
+  }
+};
+
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ 
   children, 
@@ -37,7 +56,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner text="Checking permissions..." />
       </div>
     );
   }
@@ -47,23 +66,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect to appropriate dashboard based on user role
-    switch (user.role) {
-      case 'admin':
-        return <Navigate to="/admin" replace />;
-      case 'entrepreneur':
-        return <Navigate to="/entrepreneur" replace />;
-      case 'investor':
-        return <Navigate to="/investor" replace />;
-      case 'pool':
-        return <Navigate to="/pool" replace />;
-      case 'service_provider':
-        return <Navigate to="/service-provider" replace />;
-      case 'observer':
-        return <Navigate to="/observer" replace />;
-      default:
-        return <Navigate to="/" replace />;
-    }
+    const dashboardRoute = getDashboardRoute(user.role);
+    return <Navigate to={dashboardRoute} replace />;
   }
 
   return <>{children}</>;
@@ -81,14 +85,16 @@ const DashboardRoute: React.FC<{ role: string; component: React.ComponentType }>
   );
 };
 
-// Move AppRoutes inside the AuthProvider context
+// App Routes Component
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  console.log('🎯 AppRoutes render:', { isLoading, isAuthenticated, userRole: user?.role });
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner text="Loading application..." />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner text="Loading application..." size="lg" />
       </div>
     );
   }
@@ -96,36 +102,38 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={
-        isAuthenticated ? 
-          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
-           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
-           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
-           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
-           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
-           <Navigate to="/login" replace />) : 
-          <Index />
-      } />
-      <Route path="/login" element={
-        isAuthenticated ? 
-          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
-           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
-           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
-           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
-           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
-           <Navigate to="/" replace />) : 
-          <Login />
-      } />
-      <Route path="/signup" element={
-        isAuthenticated ? 
-          (user?.role === 'admin' ? <Navigate to="/admin" replace /> :
-           user?.role === 'entrepreneur' ? <Navigate to="/entrepreneur" replace /> :
-           user?.role === 'investor' || user?.role === 'pool' ? <Navigate to="/investor" replace /> :
-           user?.role === 'service_provider' ? <Navigate to="/service-provider" replace /> :
-           user?.role === 'observer' ? <Navigate to="/observer" replace /> :
-           <Navigate to="/" replace />) : 
-          <Signup />
-      } />
+      <Route 
+        path="/" 
+        element={
+          isAuthenticated && user ? (
+            <Navigate to={getDashboardRoute(user.role)} replace />
+          ) : (
+            <Index />
+          )
+        } 
+      />
+      
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated && user ? (
+            <Navigate to={getDashboardRoute(user.role)} replace />
+          ) : (
+            <Login />
+          )
+        } 
+      />
+      
+      <Route 
+        path="/signup" 
+        element={
+          isAuthenticated && user ? (
+            <Navigate to={getDashboardRoute(user.role)} replace />
+          ) : (
+            <Signup />
+          )
+        } 
+      />
 
       {/* Protected Dashboard Routes */}
       <Route path="/admin" element={<DashboardRoute role="admin" component={AdminDashboard} />} />

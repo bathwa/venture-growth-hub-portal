@@ -51,55 +51,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('🔍 Initializing authentication...');
     
-    // Get initial session
-    const getInitialSession = async () => {
+    let mounted = true;
+
+    const initAuth = async () => {
       try {
+        // Set up auth state listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('🔄 Auth state changed:', event, session?.user?.email);
+            
+            if (!mounted) return;
+            
+            if (session?.user && event !== 'SIGNED_OUT') {
+              try {
+                await loadUserProfile(session.user);
+              } catch (error) {
+                console.error('❌ Error loading user profile during auth change:', error);
+                setUser(null);
+                setIsAuthenticated(false);
+              }
+            } else {
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+            
+            if (mounted) {
+              setIsLoading(false);
+            }
+          }
+        );
+
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ Error getting initial session:', error);
-          setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+          }
           return;
         }
 
-        if (session?.user) {
+        if (session?.user && mounted) {
           console.log('👤 Found existing session, loading user profile...');
-          await loadUserProfile(session.user);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('❌ Error in getInitialSession:', error);
-        setIsLoading(false);
-      }
-    };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Auth state changed:', event, session?.user?.email);
-        
-        if (session?.user && event !== 'SIGNED_OUT') {
           try {
             await loadUserProfile(session.user);
           } catch (error) {
-            console.error('❌ Error loading user profile during auth change:', error);
+            console.error('❌ Error loading initial user profile:', error);
             setUser(null);
             setIsAuthenticated(false);
           }
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
         }
         
-        setIsLoading(false);
-      }
-    );
+        if (mounted) {
+          setIsLoading(false);
+        }
 
-    getInitialSession();
+        // Cleanup function
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('❌ Error in auth initialization:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const cleanup = initAuth();
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      cleanup.then(cleanupFn => {
+        if (cleanupFn) cleanupFn();
+      });
     };
   }, []);
 
@@ -316,6 +342,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (profileData: Partial<User>) => {
     return updateUser(profileData);
   };
+
+  console.log('🔍 Auth Context State:', { user: user?.email, isAuthenticated, isLoading });
 
   return (
     <AuthContext.Provider value={{ 
