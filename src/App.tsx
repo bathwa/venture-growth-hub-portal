@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -80,13 +81,14 @@ const DashboardRoute: React.FC<{ role: string; component: React.ComponentType }>
   );
 };
 
+// Move AppRoutes inside the AuthProvider context
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner text="Loading application..." />
       </div>
     );
   }
