@@ -1,186 +1,164 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  getObserversByUser,
-  getPendingInvitations,
-  getObserverStats,
-  getObserverAccessLog,
-  logObserverAccess,
-  getAvailablePermissions,
-  getRelationshipOptions,
-  Observer,
-  ObserverPermission,
-  ObserverInvitation,
-  PermissionInfo,
-  RelationshipOption
-} from '@/lib/observers';
-import { toast } from 'sonner';
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from '@/components/ui/button';
+import { Eye, FileText, TrendingUp, Activity } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const ObserverDashboard = () => {
-  const { user } = useAuth();
-  const [observer, setObserver] = useState<Observer | null>(null);
-  const [observers, setObservers] = useState<Observer[]>([]);
-  const [invitations, setInvitations] = useState<ObserverInvitation[]>([]);
-  const [stats, setStats] = useState<{
-    totalObservers: number;
-    activeObservers: number;
-    pendingInvitations: number;
-    revokedObservers: number;
-  }>({
-    totalObservers: 0,
-    activeObservers: 0,
-    pendingInvitations: 0,
-    revokedObservers: 0
-  });
-  const [accessLog, setAccessLog] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [availablePermissions, setAvailablePermissions] = useState<PermissionInfo[]>([]);
-  const [relationshipOptions, setRelationshipOptions] = useState<RelationshipOption[]>([]);
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchData = async () => {
-      try {
-        const [observersData, invitationsData, statsData, accessLogData] = await Promise.all([
-          getObserversByUser(user.id),
-          getPendingInvitations(user.id),
-          getObserverStats(user.id),
-          getObserverAccessLog(user.id)
-        ]);
-
-        setObservers(observersData);
-        setInvitations(invitationsData);
-        setStats(statsData);
-        setAccessLog(accessLogData);
-
-        // Set permissions and relationship options directly
-        const permissions = await getAvailablePermissions();
-        const relationships = await getRelationshipOptions();
-        setAvailablePermissions(permissions);
-        setRelationshipOptions(relationships);
-      } catch (error) {
-        console.error('Error fetching observer data:', error);
-      }
-    };
-
-    fetchData();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchObserverData = async () => {
-      if (!user) return;
-
-      try {
-        // Mock observer data with proper permission parsing
-        const mockObserver: Observer = {
-          id: '1',
-          name: user.email || 'Observer',
-          email: user.email || '',
-          relationship: 'advisor',
-          entity_id: '1',
-          entity_type: 'opportunity',
-          permissions: ['read', 'comment'] as ObserverPermission[],
-          status: 'active',
-          granted_by: 'admin-1',
-          granted_by_role: 'admin',
-          access_expiry: '2024-12-31T23:59:59Z',
-          last_accessed: '2024-01-15T10:30:00Z',
-          created_at: '2024-01-01T00:00:00Z',
-          metadata: {}
-        };
-        
-        setObserver(mockObserver);
-
-        // Mock permissions data  
-        const availablePermissions = [
-          { type: 'read', description: 'View documents and information' },
-          { type: 'comment', description: 'Add comments and feedback' },
-          { type: 'download', description: 'Download documents' }
-        ];
-        setAvailablePermissions(availablePermissions);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching observer data:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchObserverData();
-  }, [user]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!observer) {
-    return <div>No observer data found.</div>;
-  }
-
-  const renderPermissionBadge = (permission: ObserverPermission) => {
-    const permissionLabels = {
-      'read': 'Read',
-      'comment': 'Comment', 
-      'download': 'Download'
-    };
-    
+  if (isLoading) {
     return (
-      <Badge key={permission} variant="secondary" className="text-xs">
-        {permissionLabels[permission] || permission}
-      </Badge>
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner text="Loading observer dashboard..." />
+      </div>
     );
-  };
+  }
+
+  if (!user || user.role !== 'observer') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4">Observer Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Observer Profile */}
-        <div className="bg-white shadow rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-2">Observer Profile</h2>
-          <p><strong>Name:</strong> {observer.name}</p>
-          <p><strong>Email:</strong> {observer.email}</p>
-          <p><strong>Relationship:</strong> {observer.relationship}</p>
-          <p><strong>Permissions:</strong> {observer.permissions.map(renderPermissionBadge)}</p>
-          <p><strong>Status:</strong> {observer.status}</p>
-          <p><strong>Access Expiry:</strong> {observer.access_expiry}</p>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Observer Dashboard</h1>
+              <p className="text-gray-600 mt-2">Welcome back, {user.name}</p>
+            </div>
+            <Button variant="outline">
+              Export Report
+            </Button>
+          </div>
         </div>
+      </header>
 
-        {/* Observer Statistics */}
-        <div className="bg-white shadow rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-2">Statistics</h2>
-          <p><strong>Total Observers:</strong> {stats.totalObservers}</p>
-          <p><strong>Active Observers:</strong> {stats.activeObservers}</p>
-          <p><strong>Pending Invitations:</strong> {stats.pendingInvitations}</p>
-          <p><strong>Revoked Observers:</strong> {stats.revokedObservers}</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monitored Projects</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">15</div>
+                <p className="text-xs text-blue-600 font-medium">Across 3 sectors</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Reports Generated</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">8</div>
+                <p className="text-xs text-green-600 font-medium">This month</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Average Performance</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">85%</div>
+                <p className="text-xs text-green-600 font-medium">Above benchmark</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">23</div>
+                <p className="text-xs text-blue-600 font-medium">Updates today</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monitored Projects */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monitored Projects</CardTitle>
+              <CardDescription>Projects you have observer access to</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((project) => (
+                  <div key={project} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div>
+                      <h3 className="font-medium">Investment Project #{project}</h3>
+                      <p className="text-sm text-gray-600">
+                        {project % 2 === 0 ? 'Tech Startup' : 'Green Energy'} • Last updated: 2 hours ago
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant={project <= 2 ? "default" : "secondary"}>
+                          {project <= 2 ? "Active" : "Monitoring"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {project % 2 === 0 ? 'Technology' : 'Energy'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">
+                        ${(project * 50)}K invested
+                      </p>
+                      <Button variant="outline" size="sm" className="mt-2">
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Reports */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Reports</CardTitle>
+              <CardDescription>Your latest observation reports and insights</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {['Quarterly Performance Review', 'Risk Assessment Update', 'Milestone Progress Report'].map((report, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div>
+                      <h3 className="font-medium">{report}</h3>
+                      <p className="text-sm text-gray-600">
+                        Generated {index + 1} day{index === 0 ? '' : 's'} ago
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="outline" size="sm">Download</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-
-      {/* Access Log */}
-      <div className="bg-white shadow rounded-lg p-4 mt-6">
-        <h2 className="text-lg font-semibold mb-2">Access Log</h2>
-        <ul>
-          {accessLog.map(log => (
-            <li key={log.id} className="py-2 border-b">
-              <strong>Action:</strong> {log.action}, <strong>Resource:</strong> {log.resource}, <strong>Accessed At:</strong> {log.accessed_at}
-            </li>
-          ))}
-        </ul>
-      </div>
+      </main>
     </div>
   );
 };

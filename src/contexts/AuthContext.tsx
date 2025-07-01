@@ -49,76 +49,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const initializeAuth = async () => {
+    console.log('🔍 Initializing authentication...');
+    
+    // Get initial session
+    const getInitialSession = async () => {
       try {
-        console.log('🔍 Initializing authentication...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Set up auth state listener first
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            console.log('🔄 Auth state changed:', event, session?.user?.email);
-            
-            if (!isMounted) return;
-            
-            if (session?.user && event !== 'SIGNED_OUT') {
-              try {
-                await loadUserProfile(session.user);
-              } catch (error) {
-                console.error('❌ Error loading user profile during auth change:', error);
-                setUser(null);
-                setIsAuthenticated(false);
-              }
-            } else {
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-            
-            if (isMounted) {
-              setIsLoading(false);
-            }
-          }
-        );
-
-        // Then get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('❌ Error getting session:', sessionError);
-          if (isMounted) setIsLoading(false);
+        if (error) {
+          console.error('❌ Error getting initial session:', error);
+          setIsLoading(false);
           return;
         }
 
-        if (session?.user && isMounted) {
+        if (session?.user) {
           console.log('👤 Found existing session, loading user profile...');
-          try {
-            await loadUserProfile(session.user);
-          } catch (error) {
-            console.error('❌ Error loading existing user profile:', error);
-          }
+          await loadUserProfile(session.user);
         }
-
-        if (isMounted) {
-          setIsLoading(false);
-        }
-
-        return () => {
-          subscription.unsubscribe();
-        };
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error('❌ Error initializing auth:', error);
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        console.error('❌ Error in getInitialSession:', error);
+        setIsLoading(false);
       }
     };
 
-    const cleanup = initializeAuth();
-    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Auth state changed:', event, session?.user?.email);
+        
+        if (session?.user && event !== 'SIGNED_OUT') {
+          try {
+            await loadUserProfile(session.user);
+          } catch (error) {
+            console.error('❌ Error loading user profile during auth change:', error);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    getInitialSession();
+
     return () => {
-      isMounted = false;
-      cleanup.then(cleanupFn => cleanupFn?.()).catch(console.error);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -136,7 +117,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('❌ Error loading user profile:', error);
         
         if (error.code === 'PGRST116') {
-          // No profile found - this shouldn't happen after signup
           console.log('⚠️ No user profile found');
           throw new Error('User profile not found. Please contact support.');
         }
@@ -190,7 +170,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('✅ Login successful');
-      // Profile loading will be handled by onAuthStateChange
     } catch (error) {
       console.error('❌ Login failed:', error);
       throw error;
@@ -201,13 +180,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('📝 Starting signup process for:', data.email);
       
-      // Validate admin registration
       const isAdminEmail = data.email === "abathwabiz@gmail.com" || data.email === "admin@abathwa.com";
       if (isAdminEmail && data.role !== 'admin') {
         throw new Error('Admin emails require admin role');
       }
 
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -231,7 +208,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('✅ Auth user created, creating profile...');
 
-      // Create user profile with the new RLS policies
       const { error: profileError } = await supabase
         .from('users')
         .insert({
@@ -248,7 +224,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) {
         console.error('❌ Profile creation error:', profileError);
         
-        // Try to clean up auth user if profile creation fails
         try {
           await supabase.auth.signOut();
         } catch (cleanupError) {
@@ -260,7 +235,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('✅ User profile created successfully');
 
-      // For confirmed users, try immediate signin
       if (authData.user && !authData.user.email_confirmed_at) {
         console.log('📧 Email confirmation required');
         throw new Error('Please check your email to confirm your account before logging in.');
@@ -279,7 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           console.log('✅ Immediate login successful');
-          // Profile will be loaded by onAuthStateChange
         } catch (signInError) {
           console.error('⚠️ Immediate signin failed:', signInError);
           throw new Error('Account created successfully! Please log in to continue.');

@@ -1,149 +1,136 @@
-import { Routes, Route } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Building2, TrendingUp, Users, DollarSign } from "lucide-react";
-import PoolDocumentWorkspace from "@/components/pool/PoolDocumentWorkspace";
-import { PoolSidebar } from "@/components/pool/PoolSidebar";
-import ObserverManagement from "@/components/ui/observer-management";
 
-const PoolOverview = () => {
-  const poolStats = {
-    totalFunds: 10000000,
-    investedAmount: 6500000,
-    activeInvestments: 8,
-    totalLPs: 45,
-    avgReturn: 18.5
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Venture Growth Fund I</h1>
-          <p className="text-muted-foreground">
-            Investment Pool Management Dashboard
-          </p>
-        </div>
-        <Badge variant="outline" className="bg-purple-50 text-purple-700">
-          Pool Manager
-        </Badge>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Pool Size</p>
-                <p className="text-2xl font-bold">${(poolStats.totalFunds / 1000000).toFixed(1)}M</p>
-              </div>
-              <Building2 className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Invested Amount</p>
-                <p className="text-2xl font-bold">${(poolStats.investedAmount / 1000000).toFixed(1)}M</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Investments</p>
-                <p className="text-2xl font-bold">{poolStats.activeInvestments}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Return</p>
-                <p className="text-2xl font-bold">{poolStats.avgReturn}%</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Pool Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <h4 className="font-medium">Investment in TechCorp Inc.</h4>
-                <p className="text-sm text-muted-foreground">$2,000,000 Series A investment</p>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Completed</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <h4 className="font-medium">LP Meeting Scheduled</h4>
-                <p className="text-sm text-muted-foreground">Quarterly update with limited partners</p>
-              </div>
-              <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <h4 className="font-medium">Due Diligence - StartupXYZ</h4>
-                <p className="text-sm text-muted-foreground">Financial and legal review in progress</p>
-              </div>
-              <Badge className="bg-orange-100 text-orange-800">In Progress</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+import React from 'react';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { PoolSidebar } from '@/components/pool/PoolSidebar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Users, DollarSign, TrendingUp, Building } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const PoolDashboard = () => {
-  // Mock user data - in real app this would come from auth context
-  const mockUserId = "pool-001";
-  const mockEntityId = "pool-001";
-  const mockEntityName = "Venture Growth Fund I";
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner text="Loading pool dashboard..." />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'pool') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <PoolSidebar />
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-6 bg-gray-50">
-            <Routes>
-              <Route index element={<PoolOverview />} />
-              <Route path="documents" element={<PoolDocumentWorkspace />} />
-              <Route 
-                path="observers" 
-                element={
-                  <ObserverManagement
-                    userId={mockUserId}
-                    entityId={mockEntityId}
-                    entityType="pool"
-                    entityName={mockEntityName}
-                  />
-                } 
-              />
-              <Route path="investments" element={<div>Investment Management</div>} />
-              <Route path="lps" element={<div>Limited Partner Management</div>} />
-              <Route path="reports" element={<div>Pool Reports</div>} />
-              <Route path="profile" element={<div>Pool Profile</div>} />
-            </Routes>
+          <header className="h-16 border-b bg-white flex items-center justify-between px-6">
+            <h1 className="text-xl font-semibold text-gray-900">Pool Management</h1>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Welcome, {user.name}</span>
+            </div>
+          </header>
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Pool Dashboard</h1>
+                  <p className="text-gray-600 mt-2">Manage your investment pool</p>
+                </div>
+                <Button>
+                  Create New Pool
+                </Button>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Pool Value</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">$500K</div>
+                    <p className="text-xs text-green-600 font-medium">+8.2% this month</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Pool Members</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">25</div>
+                    <p className="text-xs text-green-600 font-medium">+3 new members</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">12</div>
+                    <p className="text-xs text-blue-600 font-medium">Across 4 sectors</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Monthly Returns</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">12.5%</div>
+                    <p className="text-xs text-green-600 font-medium">Above target</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Pool Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pool Management</CardTitle>
+                  <CardDescription>Manage your investment pools and member allocations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[1, 2].map((pool) => (
+                      <div key={pool} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                        <div>
+                          <h3 className="font-medium">Tech Investment Pool #{pool}</h3>
+                          <p className="text-sm text-gray-600">25 members • $250K total value</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="default">Active</Badge>
+                            <Badge variant="outline">High Performance</Badge>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-600">15.3% ROI</p>
+                          <Button variant="outline" size="sm" className="mt-2">
+                            Manage Pool
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </main>
         </div>
       </div>
@@ -151,4 +138,4 @@ const PoolDashboard = () => {
   );
 };
 
-export default PoolDashboard; 
+export default PoolDashboard;
