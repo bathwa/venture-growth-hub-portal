@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,8 @@ const Signup = () => {
         finalRole = "admin";
       }
 
+      console.log('🚀 Starting signup process...');
+      
       await signup({
         name: formData.name,
         email: formData.email,
@@ -74,16 +77,32 @@ const Signup = () => {
         phone: formData.phone || undefined
       });
 
-      // If we reach here, the user was automatically logged in
-      toast.success("Account created successfully! Welcome to the platform.");
-      // Don't navigate - let App.tsx routing handle it
+      // Success - either logged in automatically or needs email confirmation
+      toast.success("Account created successfully!");
+      
     } catch (error: any) {
-      console.error('Signup error:', error);
-      if (error.message.includes('email to confirm')) {
-        toast.success("Account created successfully! Please check your email to confirm your account before logging in.");
-        navigate("/login");
-      } else {
-        toast.error(error.message || "Signup failed. Please try again.");
+      console.error('❌ Signup error:', error);
+      
+      let errorMessage = error.message || "Registration failed. Please try again.";
+      
+      // Handle specific error cases
+      if (error.message.includes('User already registered')) {
+        errorMessage = "An account with this email already exists. Please log in instead.";
+      } else if (error.message.includes('Password should be at least')) {
+        errorMessage = "Password must be at least 6 characters long.";
+      } else if (error.message.includes('email to confirm')) {
+        toast.success("Account created! Please check your email to confirm your account.");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      } else if (error.message.includes('Failed to create user profile')) {
+        errorMessage = "Account creation failed. Please try again or contact support.";
+      }
+      
+      toast.error(errorMessage);
+      
+      // If email confirmation is needed, redirect to login
+      if (error.message.includes('Please log in to continue')) {
+        setTimeout(() => navigate("/login"), 2000);
       }
     } finally {
       setIsLoading(false);
@@ -105,7 +124,7 @@ const Signup = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <Card>
-          <CardHeader className="text-center">
+          <CardHeader className="text-center relative">
             <Button
               variant="ghost"
               size="sm"
@@ -211,9 +230,10 @@ const Signup = () => {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 8 characters)"
                     required
                     disabled={isLoading}
+                    className="pr-10"
                   />
                   <Button
                     type="button"
@@ -239,6 +259,7 @@ const Signup = () => {
                     placeholder="Confirm your password"
                     required
                     disabled={isLoading}
+                    className="pr-10"
                   />
                   <Button
                     type="button"
@@ -278,4 +299,4 @@ const Signup = () => {
   );
 };
 
-export default Signup; 
+export default Signup;
