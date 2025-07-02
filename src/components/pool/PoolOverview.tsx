@@ -1,127 +1,84 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Crown, Users, TrendingUp, DollarSign, Vote } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingUp, Users, Vote, Crown, Plus } from 'lucide-react';
+import { PoolManagement } from '@/components/pool/PoolManagement';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function PoolOverview() {
+  const { user } = useAuth();
+  const [activePoolId, setActivePoolId] = useState<string>('pool-1'); // This would come from actual pool data
+
   return (
     <div className="space-y-6">
-      {/* Pool Header */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-purple-100 text-purple-600 text-xl font-bold">
-              BC
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Bulawayo Collective</h1>
-            <p className="text-gray-600 mt-1">Technology Investment Syndicate</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">Syndicate</Badge>
-              <Badge variant="default">Active</Badge>
-              <Badge variant="secondary">{12} Members</Badge>
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <Button className="mb-2">New Investment Proposal</Button>
-          <p className="text-sm text-gray-600">Founded: Jan 2024</p>
-        </div>
-      </div>
-
-      {/* Pool Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
+      {/* Pool Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Capital</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$450,000</div>
-            <p className="text-xs text-green-600 font-medium">+8% this month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">6</div>
-            <p className="text-xs text-blue-600 font-medium">2 pending approval</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pool Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-purple-600 font-medium">Max: 20 members</p>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">+2 this month</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Performance</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Committed</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">22.4%</div>
-            <p className="text-xs text-green-600 font-medium">Annual return</p>
+            <div className="text-2xl font-bold">$2.4M</div>
+            <p className="text-xs text-muted-foreground">$500K invested</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
+            <Vote className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">7</div>
+            <p className="text-xs text-muted-foreground">3 pending votes</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Performance</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">18.5%</div>
+            <p className="text-xs text-muted-foreground">Average return</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Leadership Panel */}
+      {/* Pool Management Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-yellow-600" />
-            Pool Leadership
-          </CardTitle>
-          <CardDescription>Current leadership team and their mandates</CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle>Pool Management</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Invite Members
+              </Button>
+              <Button variant="outline" size="sm">
+                <Vote className="h-4 w-4 mr-2" />
+                Start Election
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { role: 'Chairperson', name: 'Sarah Ndlovu', mandate: 'Overall pool governance', rating: 4.8 },
-              { role: 'Investments Officer', name: 'Michael Sibanda', mandate: 'Deal sourcing & analysis', rating: 4.6 },
-              { role: 'Treasurer', name: 'Grace Moyo', mandate: 'Financial management', rating: 4.9 },
-              { role: 'Secretary', name: 'David Mpofu', mandate: 'Documentation & compliance', rating: 4.7 }
-            ].map((leader) => (
-              <div key={leader.role} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback>{leader.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className="font-medium">{leader.name}</h4>
-                    <p className="text-sm text-gray-600">{leader.role}</p>
-                    <p className="text-xs text-gray-500">{leader.mandate}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span>
-                    <span className="text-sm font-medium">{leader.rating}</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    <Vote className="h-3 w-3 mr-1" />
-                    Rate
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <PoolManagement poolId={activePoolId} />
         </CardContent>
       </Card>
 
@@ -129,49 +86,35 @@ export function PoolOverview() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Pool Activity</CardTitle>
-          <CardDescription>Latest votes, investments, and discussions</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { type: 'vote', title: 'Investment Proposal: AgriTech Solutions', status: 'Approved', time: '2 hours ago' },
-              { type: 'discussion', title: 'Q3 Performance Review Meeting', status: 'Scheduled', time: '1 day ago' },
-              { type: 'investment', title: 'CleanEnergy Ltd - Payment Processed', status: 'Completed', time: '3 days ago' }
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div>
-                  <h4 className="font-medium">{activity.title}</h4>
-                  <p className="text-sm text-gray-600">{activity.time}</p>
-                </div>
-                <Badge variant={activity.status === 'Approved' || activity.status === 'Completed' ? 'default' : 'secondary'}>
-                  {activity.status}
-                </Badge>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <p className="text-sm font-medium">New investment proposal: TechCorp Series A</p>
+                <p className="text-xs text-gray-500">Proposed by John Investor • 2 hours ago</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pool Members */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pool Members</CardTitle>
-          <CardDescription>Active members and their contributions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                <Avatar>
-                  <AvatarFallback>M{i + 1}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h4 className="font-medium">Member {i + 1}</h4>
-                  <p className="text-sm text-gray-600">Contributed: ${(Math.random() * 50000 + 10000).toFixed(0)}</p>
-                  <p className="text-xs text-gray-500">Joined: {new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toLocaleDateString()}</p>
-                </div>
+              <Button size="sm" variant="outline">
+                <Vote className="h-4 w-4 mr-2" />
+                Vote
+              </Button>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <p className="text-sm font-medium">Confidence vote completed for Pool Manager</p>
+                <p className="text-xs text-gray-500">Sarah Manager retained • 1 day ago</p>
               </div>
-            ))}
+              <div className="text-sm text-green-600 font-medium">Retained</div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <p className="text-sm font-medium">New member joined the pool</p>
+                <p className="text-xs text-gray-500">Mike Investor • 3 days ago</p>
+              </div>
+              <div className="text-sm text-blue-600 font-medium">Welcome</div>
+            </div>
           </div>
         </CardContent>
       </Card>

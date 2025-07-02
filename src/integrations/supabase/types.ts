@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agreements: {
         Row: {
           agreement_type: string
@@ -112,6 +156,42 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          template_content: Json
+          template_name: string
+          template_type: string
+          updated_at: string | null
+          variables: Json | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content: Json
+          template_name: string
+          template_type: string
+          updated_at?: string | null
+          variables?: Json | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content?: Json
+          template_name?: string
+          template_type?: string
+          updated_at?: string | null
+          variables?: Json | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           bucket_name: string | null
@@ -191,6 +271,50 @@ export type Database = {
           },
           {
             foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      due_diligence_profiles: {
+        Row: {
+          compliance_status: string | null
+          created_at: string | null
+          credit_score: number | null
+          debt_profile: Json | null
+          financial_statements: Json | null
+          id: string
+          last_updated: string | null
+          risk_assessment: Json | null
+          user_id: string
+        }
+        Insert: {
+          compliance_status?: string | null
+          created_at?: string | null
+          credit_score?: number | null
+          debt_profile?: Json | null
+          financial_statements?: Json | null
+          id?: string
+          last_updated?: string | null
+          risk_assessment?: Json | null
+          user_id: string
+        }
+        Update: {
+          compliance_status?: string | null
+          created_at?: string | null
+          credit_score?: number | null
+          debt_profile?: Json | null
+          financial_statements?: Json | null
+          id?: string
+          last_updated?: string | null
+          risk_assessment?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "due_diligence_profiles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -332,6 +456,74 @@ export type Database = {
             columns: ["escrow_account_id"]
             isOneToOne: false
             referencedRelation: "escrow_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_documents: {
+        Row: {
+          created_at: string | null
+          document_data: Json
+          file_path: string | null
+          generated_by: string
+          id: string
+          investment_id: string | null
+          opportunity_id: string | null
+          status: string | null
+          template_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_data: Json
+          file_path?: string | null
+          generated_by: string
+          id?: string
+          investment_id?: string | null
+          opportunity_id?: string | null
+          status?: string | null
+          template_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_data?: Json
+          file_path?: string | null
+          generated_by?: string
+          id?: string
+          investment_id?: string | null
+          opportunity_id?: string | null
+          status?: string | null
+          template_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -516,6 +708,53 @@ export type Database = {
           },
         ]
       }
+      job_cards: {
+        Row: {
+          attachments: Json | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          progress_notes: Json | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          work_order_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          progress_notes?: Json | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          work_order_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          progress_notes?: Json | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_cards_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_verifications: {
         Row: {
           created_at: string | null
@@ -572,6 +811,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      milestone_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_payment_trigger: boolean | null
+          milestone_name: string
+          opportunity_type: string
+          suggested_timeline_days: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_payment_trigger?: boolean | null
+          milestone_name: string
+          opportunity_type: string
+          suggested_timeline_days?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_payment_trigger?: boolean | null
+          milestone_name?: string
+          opportunity_type?: string
+          suggested_timeline_days?: number | null
+        }
+        Relationships: []
       }
       milestones: {
         Row: {
@@ -632,6 +901,133 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      negotiation_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          negotiation_id: string
+          proposed_changes: Json | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          negotiation_id: string
+          proposed_changes?: Json | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          negotiation_id?: string
+          proposed_changes?: Json | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negotiation_messages_negotiation_id_fkey"
+            columns: ["negotiation_id"]
+            isOneToOne: false
+            referencedRelation: "negotiations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiation_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      negotiations: {
+        Row: {
+          created_at: string | null
+          entrepreneur_id: string
+          expires_at: string | null
+          id: string
+          investor_id: string
+          opportunity_id: string
+          status: string | null
+          terms: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entrepreneur_id: string
+          expires_at?: string | null
+          id?: string
+          investor_id: string
+          opportunity_id: string
+          status?: string | null
+          terms: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entrepreneur_id?: string
+          expires_at?: string | null
+          id?: string
+          investor_id?: string
+          opportunity_id?: string
+          status?: string | null
+          terms?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negotiations_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiations_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          template_content: Json
+          template_key: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content: Json
+          template_key: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content?: Json
+          template_key?: string
+          variables?: Json | null
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -961,6 +1357,76 @@ export type Database = {
           },
         ]
       }
+      payment_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          banking_details: Json
+          created_at: string | null
+          currency: string | null
+          id: string
+          investment_id: string | null
+          milestone_id: string | null
+          proof_of_payment_url: string | null
+          request_type: string
+          requester_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          banking_details: Json
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          investment_id?: string | null
+          milestone_id?: string | null
+          proof_of_payment_url?: string | null
+          request_type: string
+          requester_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          banking_details?: Json
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          investment_id?: string | null
+          milestone_id?: string | null
+          proof_of_payment_url?: string | null
+          request_type?: string
+          requester_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -1043,6 +1509,100 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      pool_confidence_vote_responses: {
+        Row: {
+          confidence_vote_id: string
+          id: string
+          vote: string
+          voted_at: string | null
+          voter_id: string
+        }
+        Insert: {
+          confidence_vote_id: string
+          id?: string
+          vote: string
+          voted_at?: string | null
+          voter_id: string
+        }
+        Update: {
+          confidence_vote_id?: string
+          id?: string
+          vote?: string
+          voted_at?: string | null
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_confidence_vote_responses_confidence_vote_id_fkey"
+            columns: ["confidence_vote_id"]
+            isOneToOne: false
+            referencedRelation: "pool_confidence_votes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_confidence_vote_responses_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "pool_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_confidence_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          initiated_by: string
+          leader_id: string
+          pool_id: string
+          reason: string | null
+          status: string | null
+          voting_deadline: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          initiated_by: string
+          leader_id: string
+          pool_id: string
+          reason?: string | null
+          status?: string | null
+          voting_deadline: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          initiated_by?: string
+          leader_id?: string
+          pool_id?: string
+          reason?: string | null
+          status?: string | null
+          voting_deadline?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_confidence_votes_initiated_by_fkey"
+            columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "pool_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_confidence_votes_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leaders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_confidence_votes_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "investment_pools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pool_distributions: {
         Row: {
@@ -1167,6 +1727,247 @@ export type Database = {
             columns: ["proposed_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_leaders: {
+        Row: {
+          created_at: string | null
+          elected_at: string | null
+          id: string
+          is_active: boolean | null
+          member_id: string
+          performance_rating: number | null
+          pool_id: string
+          role_id: string
+          term_end: string | null
+          term_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          elected_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id: string
+          performance_rating?: number | null
+          pool_id: string
+          role_id: string
+          term_end?: string | null
+          term_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          elected_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id?: string
+          performance_rating?: number | null
+          pool_id?: string
+          role_id?: string
+          term_end?: string | null
+          term_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_leaders_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "pool_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leaders_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "investment_pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leaders_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leadership_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_leadership_candidates: {
+        Row: {
+          campaign_statement: string | null
+          created_at: string | null
+          election_id: string
+          id: string
+          member_id: string
+          status: string | null
+        }
+        Insert: {
+          campaign_statement?: string | null
+          created_at?: string | null
+          election_id: string
+          id?: string
+          member_id: string
+          status?: string | null
+        }
+        Update: {
+          campaign_statement?: string | null
+          created_at?: string | null
+          election_id?: string
+          id?: string
+          member_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_leadership_candidates_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leadership_elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leadership_candidates_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "pool_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_leadership_elections: {
+        Row: {
+          campaign_end: string | null
+          campaign_start: string | null
+          created_at: string | null
+          id: string
+          nomination_deadline: string | null
+          pool_id: string
+          role_id: string
+          status: string | null
+          voting_end: string | null
+          voting_start: string | null
+        }
+        Insert: {
+          campaign_end?: string | null
+          campaign_start?: string | null
+          created_at?: string | null
+          id?: string
+          nomination_deadline?: string | null
+          pool_id: string
+          role_id: string
+          status?: string | null
+          voting_end?: string | null
+          voting_start?: string | null
+        }
+        Update: {
+          campaign_end?: string | null
+          campaign_start?: string | null
+          created_at?: string | null
+          id?: string
+          nomination_deadline?: string | null
+          pool_id?: string
+          role_id?: string
+          status?: string | null
+          voting_end?: string | null
+          voting_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_leadership_elections_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "investment_pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leadership_elections_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leadership_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_leadership_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          mandate: string | null
+          pool_id: string
+          role_description: string | null
+          role_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mandate?: string | null
+          pool_id: string
+          role_description?: string | null
+          role_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mandate?: string | null
+          pool_id?: string
+          role_description?: string | null
+          role_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_leadership_roles_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "investment_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_leadership_votes: {
+        Row: {
+          candidate_id: string
+          election_id: string
+          id: string
+          voted_at: string | null
+          voter_id: string
+        }
+        Insert: {
+          candidate_id: string
+          election_id: string
+          id?: string
+          voted_at?: string | null
+          voter_id: string
+        }
+        Update: {
+          candidate_id?: string
+          election_id?: string
+          id?: string
+          voted_at?: string | null
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_leadership_votes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leadership_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leadership_votes_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "pool_leadership_elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pool_leadership_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "pool_members"
             referencedColumns: ["id"]
           },
         ]
@@ -1321,6 +2122,33 @@ export type Database = {
         }
         Relationships: []
       }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           banking_details: Json | null
@@ -1362,6 +2190,75 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      service_requests: {
+        Row: {
+          associated_entity_id: string | null
+          associated_entity_type: string | null
+          attachments: Json | null
+          created_at: string | null
+          deliverables: Json | null
+          end_date: string | null
+          id: string
+          proposed_budget: number | null
+          requestor_id: string
+          scope_description: string
+          selected_service_provider_ids: Json | null
+          service_category_id: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          associated_entity_id?: string | null
+          associated_entity_type?: string | null
+          attachments?: Json | null
+          created_at?: string | null
+          deliverables?: Json | null
+          end_date?: string | null
+          id?: string
+          proposed_budget?: number | null
+          requestor_id: string
+          scope_description: string
+          selected_service_provider_ids?: Json | null
+          service_category_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          associated_entity_id?: string | null
+          associated_entity_type?: string | null
+          attachments?: Json | null
+          created_at?: string | null
+          deliverables?: Json | null
+          end_date?: string | null
+          id?: string
+          proposed_budget?: number | null
+          requestor_id?: string
+          scope_description?: string
+          selected_service_provider_ids?: Json | null
+          service_category_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_requestor_id_fkey"
+            columns: ["requestor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_service_category_id_fkey"
+            columns: ["service_category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1455,6 +2352,66 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      work_orders: {
+        Row: {
+          agreed_deliverables: Json | null
+          agreed_fee: number | null
+          agreed_scope: string | null
+          agreed_timeline_end: string | null
+          agreed_timeline_start: string | null
+          created_at: string | null
+          id: string
+          payment_status: string | null
+          service_provider_id: string
+          service_request_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agreed_deliverables?: Json | null
+          agreed_fee?: number | null
+          agreed_scope?: string | null
+          agreed_timeline_end?: string | null
+          agreed_timeline_start?: string | null
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          service_provider_id: string
+          service_request_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agreed_deliverables?: Json | null
+          agreed_fee?: number | null
+          agreed_scope?: string | null
+          agreed_timeline_end?: string | null
+          agreed_timeline_start?: string | null
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          service_provider_id?: string
+          service_request_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
