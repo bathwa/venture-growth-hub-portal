@@ -49,16 +49,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔍 Initializing authentication...');
-    
     let mounted = true;
 
     const initAuth = async () => {
       try {
-        // Set up auth state listener first
+        console.log('🔍 Starting auth initialization...');
+        
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          if (mounted) {
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // If we have a session, load the user profile
+        if (session?.user) {
+          console.log('👤 Found session, loading profile...');
+          try {
+            await loadUserProfile(session.user);
+          } catch (profileError) {
+            console.error('❌ Error loading profile:', profileError);
+            // Don't block app if profile loading fails
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+
+        // Set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            console.log('🔄 Auth state changed:', event, session?.user?.email);
+            console.log('🔄 Auth state change:', event);
             
             if (!mounted) return;
             
@@ -66,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               try {
                 await loadUserProfile(session.user);
               } catch (error) {
-                console.error('❌ Error loading user profile during auth change:', error);
+                console.error('❌ Profile loading failed:', error);
                 setUser(null);
                 setIsAuthenticated(false);
               }
@@ -74,64 +98,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(null);
               setIsAuthenticated(false);
             }
-            
-            if (mounted) {
-              setIsLoading(false);
-            }
           }
         );
 
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Error getting initial session:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        if (session?.user && mounted) {
-          console.log('👤 Found existing session, loading user profile...');
-          try {
-            await loadUserProfile(session.user);
-          } catch (error) {
-            console.error('❌ Error loading initial user profile:', error);
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        }
-        
         if (mounted) {
           setIsLoading(false);
         }
 
-        // Cleanup function
         return () => {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error('❌ Error in auth initialization:', error);
+        console.error('❌ Auth initialization failed:', error);
         if (mounted) {
           setIsLoading(false);
         }
       }
     };
 
-    const cleanup = initAuth();
+    initAuth();
 
     return () => {
       mounted = false;
-      cleanup.then(cleanupFn => {
-        if (cleanupFn) cleanupFn();
-      });
     };
   }, []);
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
-      console.log('📋 Loading user profile for:', supabaseUser.email);
+      console.log('📋 Loading profile for:', supabaseUser.email);
       
       const { data: profile, error } = await supabase
         .from('users')
@@ -140,18 +134,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('❌ Error loading user profile:', error);
-        
         if (error.code === 'PGRST116') {
-          console.log('⚠️ No user profile found');
-          throw new Error('User profile not found. Please contact support.');
+          console.log('⚠️ No profile found, user needs to complete setup');
+          throw new Error('Profile not found');
         }
-        
         throw error;
       }
 
       if (profile) {
-        console.log('✅ User profile loaded successfully:', profile.role);
         const userData: User = {
           id: profile.id,
           email: profile.email,
@@ -173,177 +163,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(userData);
         setIsAuthenticated(true);
-        console.log('✅ User state updated, role:', userData.role);
+        console.log('✅ Profile loaded successfully');
       }
     } catch (error) {
-      console.error('❌ Error in loadUserProfile:', error);
+      console.error('❌ loadUserProfile error:', error);
       throw error;
     }
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      console.log('🔑 Attempting login for:', email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-      if (error) {
-        console.error('❌ Login error:', error);
-        throw error;
-      }
-
-      console.log('✅ Login successful');
-    } catch (error) {
-      console.error('❌ Login failed:', error);
-      throw error;
-    }
+    if (error) throw error;
   };
 
   const signup = async (data: SignupData) => {
-    try {
-      console.log('📝 Starting signup process for:', data.email);
-      
-      const isAdminEmail = data.email === "abathwabiz@gmail.com" || data.email === "admin@abathwa.com";
-      if (isAdminEmail && data.role !== 'admin') {
-        throw new Error('Admin emails require admin role');
-      }
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-          data: {
-            role: data.role,
-            name: data.name
-          }
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
+          role: data.role,
+          name: data.name
         }
+      }
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Failed to create user');
+
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        phone: data.phone || null,
+        kyc_status: 'not_submitted',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
 
-      if (authError) {
-        console.error('❌ Auth signup error:', authError);
-        throw authError;
-      }
+    if (profileError) {
+      await supabase.auth.signOut();
+      throw new Error(`Profile creation failed: ${profileError.message}`);
+    }
 
-      if (!authData.user) {
-        throw new Error('Failed to create user account');
-      }
-
-      console.log('✅ Auth user created, creating profile...');
-
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: data.email,
-          name: data.name,
-          role: data.role,
-          phone: data.phone || null,
-          kyc_status: 'not_submitted',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (profileError) {
-        console.error('❌ Profile creation error:', profileError);
-        
-        try {
-          await supabase.auth.signOut();
-        } catch (cleanupError) {
-          console.error('⚠️ Failed to cleanup auth user:', cleanupError);
-        }
-        
-        throw new Error(`Failed to create user profile: ${profileError.message}`);
-      }
-
-      console.log('✅ User profile created successfully');
-
-      if (authData.user && !authData.user.email_confirmed_at) {
-        console.log('📧 Email confirmation required');
-        throw new Error('Please check your email to confirm your account before logging in.');
-      } else {
-        console.log('✅ User confirmed, attempting immediate login...');
-        
-        try {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: data.email,
-            password: data.password
-          });
-
-          if (signInError) {
-            console.error('⚠️ Immediate signin failed:', signInError);
-            throw new Error('Account created successfully! Please log in to continue.');
-          }
-
-          console.log('✅ Immediate login successful');
-        } catch (signInError) {
-          console.error('⚠️ Immediate signin failed:', signInError);
-          throw new Error('Account created successfully! Please log in to continue.');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Signup process failed:', error);
-      throw error;
+    if (!authData.user.email_confirmed_at) {
+      throw new Error('Please check your email to confirm your account');
     }
   };
 
   const logout = async () => {
-    try {
-      console.log('🚪 Logging out user...');
-      
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Logout error:', error);
-        throw error;
-      }
-      
-      setUser(null);
-      setIsAuthenticated(false);
-      console.log('✅ Logout successful');
-    } catch (error) {
-      console.error('❌ Logout failed:', error);
-      throw error;
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   const updateUser = async (userData: Partial<User>) => {
-    if (!user) {
-      throw new Error('No user logged in');
-    }
+    if (!user) throw new Error('No user logged in');
 
-    try {
-      console.log('📝 Updating user profile...');
-      
-      const { error } = await supabase
-        .from('users')
-        .update({
-          ...userData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+    const { error } = await supabase
+      .from('users')
+      .update({
+        ...userData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
 
-      if (error) {
-        console.error('❌ Update user error:', error);
-        throw error;
-      }
+    if (error) throw error;
 
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      console.log('✅ User profile updated successfully');
-    } catch (error) {
-      console.error('❌ Update user failed:', error);
-      throw error;
-    }
+    setUser({ ...user, ...userData });
   };
 
   const updateProfile = async (profileData: Partial<User>) => {
     return updateUser(profileData);
   };
-
-  console.log('🔍 Auth Context State:', { user: user?.email, isAuthenticated, isLoading });
 
   return (
     <AuthContext.Provider value={{ 

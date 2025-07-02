@@ -20,10 +20,6 @@ import PoolDashboard from '@/pages/pool/PoolDashboard';
 import ServiceProviderDashboard from '@/pages/service-provider/ServiceProviderDashboard';
 import ObserverDashboard from '@/pages/observer/ObserverDashboard';
 
-// Entrepreneur Pages
-import CreateOpportunity from '@/pages/entrepreneur/opportunities/create';
-import OpportunitiesList from '@/pages/entrepreneur/opportunities/index';
-
 // Components
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
@@ -31,16 +27,17 @@ import LoadingSpinner from '@/components/ui/loading-spinner';
 const getDashboardRoute = (role: string): string => {
   switch (role) {
     case 'admin':
-      return '/admin';
+      return '/admin-dashboard';
     case 'entrepreneur':
-      return '/entrepreneur';
+      return '/entrepreneur-dashboard';
     case 'investor':
+      return '/investor-dashboard';
     case 'pool':
-      return '/investor';
+      return '/pool-dashboard';
     case 'service_provider':
-      return '/service-provider';
+      return '/service-provider-dashboard';
     case 'observer':
-      return '/observer';
+      return '/observer-dashboard';
     default:
       return '/';
   }
@@ -55,8 +52,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner text="Checking permissions..." />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner text="Loading..." size="lg" />
       </div>
     );
   }
@@ -73,23 +70,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   return <>{children}</>;
 };
 
-// Dashboard Route Component
-const DashboardRoute: React.FC<{ role: string; component: React.ComponentType }> = ({ 
-  role, 
-  component: Component 
-}) => {
-  return (
-    <ProtectedRoute allowedRoles={[role]}>
-      <Component />
-    </ProtectedRoute>
-  );
-};
-
 // App Routes Component
 function AppRoutes() {
   const { user, isAuthenticated, isLoading } = useAuth();
-
-  console.log('🎯 AppRoutes render:', { isLoading, isAuthenticated, userRole: user?.role });
 
   if (isLoading) {
     return (
@@ -136,16 +119,59 @@ function AppRoutes() {
       />
 
       {/* Protected Dashboard Routes */}
-      <Route path="/admin" element={<DashboardRoute role="admin" component={AdminDashboard} />} />
-      <Route path="/entrepreneur" element={<DashboardRoute role="entrepreneur" component={EntrepreneurDashboard} />} />
-      <Route path="/investor" element={<DashboardRoute role="investor" component={InvestorDashboard} />} />
-      <Route path="/pool" element={<DashboardRoute role="pool" component={PoolDashboard} />} />
-      <Route path="/service-provider" element={<DashboardRoute role="service_provider" component={ServiceProviderDashboard} />} />
-      <Route path="/observer" element={<DashboardRoute role="observer" component={ObserverDashboard} />} />
-
-      {/* Entrepreneur Pages */}
-      <Route path="/entrepreneur/opportunities/create" element={<DashboardRoute role="entrepreneur" component={CreateOpportunity} />} />
-      <Route path="/entrepreneur/opportunities" element={<DashboardRoute role="entrepreneur" component={OpportunitiesList} />} />
+      <Route 
+        path="/admin-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/entrepreneur-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['entrepreneur']}>
+            <EntrepreneurDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/investor-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['investor']}>
+            <InvestorDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/pool-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['pool']}>
+            <PoolDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/service-provider-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['service_provider']}>
+            <ServiceProviderDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/observer-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['observer']}>
+            <ObserverDashboard />
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
