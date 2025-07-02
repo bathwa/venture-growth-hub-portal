@@ -1,222 +1,182 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useNavigate } from "react-router-dom";
-import { DRBE, Milestone, MilestoneStatus } from "@/lib/drbe";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Plus, TrendingUp, DollarSign, Users, Target, Clock } from 'lucide-react';
 
 export function EntrepreneurOverview() {
-  const navigate = useNavigate();
-
-  const stats = [
-    { title: "Active Opportunities", value: "3", subtitle: "2 published, 1 draft" },
-    { title: "Total Funding Received", value: "$250K", subtitle: "Across all opportunities" },
-    { title: "Pending Offers", value: "5", subtitle: "Requiring your response" },
-    { title: "Active Milestones", value: "8", subtitle: "2 due this week" },
-  ];
-
-  const opportunities = [
-    {
-      id: 1,
-      title: "Green Energy Startup",
-      status: "published",
-      funding: "$100K",
-      target: "$500K",
-      progress: 20,
-      offers: 3,
-      nextMilestone: "Product Prototype - Due in 5 days"
-    },
-    {
-      id: 2,
-      title: "AI Healthcare Platform",
-      status: "published",
-      funding: "$150K",
-      target: "$750K",
-      progress: 20,
-      offers: 2,
-      nextMilestone: "Market Research - Due in 12 days"
-    },
-    {
-      id: 3,
-      title: "Sustainable Fashion Brand",
-      status: "draft",
-      funding: "$0",
-      target: "$300K",
-      progress: 0,
-      offers: 0,
-      nextMilestone: "Complete business plan"
-    }
-  ];
-
-  const recentActivity = [
-    { action: "New investment offer received", opportunity: "Green Energy Startup", amount: "$75K", time: "2 hours ago" },
-    { action: "Milestone updated", opportunity: "AI Healthcare Platform", detail: "Market analysis completed", time: "1 day ago" },
-    { action: "Investor inquiry", opportunity: "Green Energy Startup", detail: "Additional documentation requested", time: "2 days ago" },
-  ];
-
-  // Mock milestones
-  const milestones: Milestone[] = [
-    {
-      title: "Product Development",
-      target_date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-      status: "pending",
-      last_update: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
-      title: "Market Research",
-      target_date: new Date(Date.now() + 86400000 * 3).toISOString(), // in 3 days
-      status: "pending",
-      last_update: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      title: "Legal Documentation",
-      target_date: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
-      status: "completed",
-      last_update: new Date(Date.now() - 86400000 * 1).toISOString(),
-    },
-  ];
-
-  function getMilestoneStatus(milestone: Milestone): MilestoneStatus {
-    return DRBE.evaluateMilestoneStatus(milestone);
-  }
-
   return (
     <div className="space-y-6">
+      {/* Welcome Section */}
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
-        <Button onClick={() => navigate('/entrepreneur/create-opportunity')}>
-          + Create New Opportunity
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Entrepreneur Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage your opportunities and track your progress</p>
+        </div>
+        <Button className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Create New Opportunity
         </Button>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="pb-2">
-              <CardDescription>{stat.title}</CardDescription>
-              <CardTitle className="text-2xl">{stat.value}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">{stat.subtitle}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* My Opportunities */}
-        <Card>
-          <CardHeader>
-            <CardTitle>My Opportunities</CardTitle>
-            <CardDescription>Overview of your investment opportunities</CardDescription>
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Opportunities</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {opportunities.map((opportunity) => (
-                <div key={opportunity.id} className="p-4 border rounded-lg">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium">{opportunity.title}</h4>
-                    <Badge variant={opportunity.status === 'published' ? 'default' : 'secondary'}>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-blue-600 font-medium">2 seeking investment</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$185,000</div>
+            <p className="text-xs text-green-600 font-medium">+$25K this month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Investors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-purple-600 font-medium">8 new this quarter</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Milestones Due</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">4</div>
+            <p className="text-xs text-orange-600 font-medium">2 overdue</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* My Opportunities */}
+      <Card>
+        <CardHeader>
+          <CardTitle>My Opportunities</CardTitle>
+          <CardDescription>Your active investment opportunities</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[
+              { name: 'TechStart Solutions', type: 'Going Concern', target: 150000, raised: 85000, status: 'Active' },
+              { name: 'GreenEnergy Project', type: 'Project Partnership', target: 200000, raised: 50000, status: 'Active' },
+              { name: 'AgriTech Innovation', type: 'Order Fulfillment', target: 75000, raised: 75000, status: 'Funded' }
+            ].map((opportunity, index) => (
+              <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex-1">
+                  <h3 className="font-medium">{opportunity.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Raised: ${opportunity.raised.toLocaleString()} of ${opportunity.target.toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline">{opportunity.type}</Badge>
+                    <Badge variant={opportunity.status === 'Funded' ? 'default' : 'secondary'}>
                       {opportunity.status}
                     </Badge>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Funding Progress</span>
-                      <span>{opportunity.funding} / {opportunity.target}</span>
-                    </div>
-                    <Progress value={opportunity.progress} className="h-2" />
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>{opportunity.offers} offers</span>
-                      <span>{opportunity.progress}% funded</span>
-                    </div>
-                    <p className="text-sm text-blue-600">{opportunity.nextMilestone}</p>
+                </div>
+                <div className="text-right">
+                  <div className="w-32 bg-gray-200 rounded-full h-2 mb-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${(opportunity.raised / opportunity.target) * 100}%` }}
+                    ></div>
                   </div>
+                  <p className="text-sm text-gray-600">
+                    {Math.round((opportunity.raised / opportunity.target) * 100)}% funded
+                  </p>
+                  <Button variant="outline" size="sm" className="mt-2">
+                    Manage
+                  </Button>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates on your opportunities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium text-sm">{activity.action}</p>
-                  <p className="text-sm text-gray-600">{activity.opportunity}</p>
-                  {activity.amount && (
-                    <p className="text-sm font-medium text-green-600">{activity.amount}</p>
-                  )}
-                  {activity.detail && (
-                    <p className="text-sm text-gray-600">{activity.detail}</p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Milestones Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Milestones</CardTitle>
-          <CardDescription>Track your progress and see overdue milestones</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {milestones.map((milestone, idx) => {
-              const status = getMilestoneStatus(milestone);
-              return (
-                <div key={idx} className="flex items-center gap-4 p-2 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{milestone.title}</div>
-                    <div className="text-sm text-gray-600">Target: {new Date(milestone.target_date).toLocaleDateString()}</div>
-                    <div className="text-sm text-gray-600">Last update: {new Date(milestone.last_update).toLocaleDateString()}</div>
-                  </div>
-                  <Badge variant={status === 'overdue' ? 'destructive' : status === 'completed' ? 'default' : 'secondary'}>
-                    {status === 'overdue' ? 'Overdue 🚩' : status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Badge>
-                </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
+      {/* Recent Investment Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks and shortcuts</CardDescription>
+          <CardTitle>Recent Investment Activity</CardTitle>
+          <CardDescription>Latest offers and investor interactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/entrepreneur/create-opportunity')}>
-              <span className="text-2xl mb-2">➕</span>
-              Create Opportunity
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/entrepreneur/offers')}>
-              <span className="text-2xl mb-2">💼</span>
-              View Offers
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/entrepreneur/reports')}>
-              <span className="text-2xl mb-2">📊</span>
-              Update Progress
-            </Button>
-            <Button variant="outline" className="h-20 flex-col" onClick={() => navigate('/entrepreneur/profile')}>
-              <span className="text-2xl mb-2">👤</span>
-              Edit Profile
-            </Button>
+          <div className="space-y-4">
+            {[
+              { investor: 'Michael Sibanda', opportunity: 'TechStart Solutions', amount: 25000, status: 'Accepted', time: '2 hours ago' },
+              { investor: 'Investment Pool Alpha', opportunity: 'GreenEnergy Project', amount: 50000, status: 'Pending', time: '1 day ago' },
+              { investor: 'Sarah Johnson', opportunity: 'TechStart Solutions', amount: 15000, status: 'Under Review', time: '3 days ago' }
+            ].map((activity, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{activity.investor}</h4>
+                  <p className="text-sm text-gray-600">{activity.opportunity}</p>
+                  <p className="text-xs text-gray-500">{activity.time}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">${activity.amount.toLocaleString()}</p>
+                  <Badge variant={
+                    activity.status === 'Accepted' ? 'default' :
+                    activity.status === 'Pending' ? 'secondary' : 'outline'
+                  }>
+                    {activity.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upcoming Milestones */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            Upcoming Milestones
+          </CardTitle>
+          <CardDescription>Track your progress and deliverables</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { title: 'Product Beta Release', opportunity: 'TechStart Solutions', due: '2024-02-15', status: 'In Progress' },
+              { title: 'Market Validation Report', opportunity: 'GreenEnergy Project', due: '2024-02-20', status: 'Overdue' },
+              { title: 'First Revenue Milestone', opportunity: 'TechStart Solutions', due: '2024-03-01', status: 'Upcoming' }
+            ].map((milestone, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">{milestone.title}</h4>
+                  <p className="text-sm text-gray-600">{milestone.opportunity}</p>
+                  <p className="text-xs text-gray-500">Due: {new Date(milestone.due).toLocaleDateString()}</p>
+                </div>
+                <Badge variant={
+                  milestone.status === 'Overdue' ? 'destructive' :
+                  milestone.status === 'In Progress' ? 'default' : 'secondary'
+                }>
+                  {milestone.status}
+                </Badge>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

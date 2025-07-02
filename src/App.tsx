@@ -6,10 +6,12 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { PWAProvider } from '@/contexts/PWAContext';
 
-// Pages
+// Public Pages
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 import NotFound from '@/pages/NotFound';
 
 // Dashboards
@@ -114,6 +116,28 @@ function AppRoutes() {
             <Navigate to={getDashboardRoute(user.role)} replace />
           ) : (
             <Signup />
+          )
+        } 
+      />
+
+      <Route 
+        path="/forgot-password" 
+        element={
+          isAuthenticated && user ? (
+            <Navigate to={getDashboardRoute(user.role)} replace />
+          ) : (
+            <ForgotPassword />
+          )
+        } 
+      />
+
+      <Route 
+        path="/reset-password/:token" 
+        element={
+          isAuthenticated && user ? (
+            <Navigate to={getDashboardRoute(user.role)} replace />
+          ) : (
+            <ResetPassword />
           )
         } 
       />
